@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101210" media="(prefers-color-scheme: dark)">
+<title>GRE 单词</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f4f2ed;
+    --card: #fffefb;
+    --ink: #1c1b18;
+    --muted: #77736a;
+    --line: #e7e2d8;
+    --soft: #f3f0e9;
+    --known: #2f7d57;
+    --unknown: #bf4a3c;
+    --known-soft: #e7f3ec;
+    --known-text: #256b49;
+    --unknown-soft: #f9e9e6;
+    --unknown-text: #a33b2e;
+    --shadow: 0 10px 40px rgba(40, 35, 25, .08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101210;
+      --card: #191c19;
+      --ink: #ecebe4;
+      --muted: #9a988f;
+      --line: #2c302c;
+      --soft: #232722;
+      --known-soft: #1d3227;
+      --known-text: #8fd7ae;
+      --unknown-soft: #38221f;
+      --unknown-text: #f0a196;
+      --shadow: 0 10px 40px rgba(0, 0, 0, .35);
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app {
+    width: min(100%, 540px);
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: 18px 16px calc(16px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+  }
+  .topbar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 4px 14px;
+  }
+  .brand {
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: .09em;
+    color: var(--muted);
+  }
+  .today {
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .card {
+    margin-block: auto;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    padding: 30px 20px 24px;
+  }
+  .prompt {
+    margin: 0 0 18px;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: .12em;
+    color: var(--muted);
+  }
+  .word {
+    margin: 0 0 28px;
+    text-align: center;
+    font-family: Georgia, "Times New Roman", "Songti SC", serif;
+    font-weight: 500;
+    font-size: clamp(42px, 13vw, 64px);
+    line-height: 1.08;
+    letter-spacing: -.01em;
+    overflow-wrap: anywhere;
+  }
+  .word.long { font-size: clamp(24px, 7.5vw, 40px); line-height: 1.2; }
+  .actions { display: flex; gap: 12px; }
+  .btn {
+    appearance: none;
+    border: none;
+    font: inherit;
+    cursor: pointer;
+    border-radius: 14px;
+    padding: 16px 18px;
+    font-size: 17px;
+    font-weight: 600;
+    transition: transform .08s ease, filter .15s ease;
+  }
+  .btn:active { transform: scale(.975); }
+  .btn:focus-visible, .link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .actions .btn { flex: 1; color: #fff; }
+  .btn.known { background: var(--known); }
+  .btn.unknown { background: var(--unknown); }
+  @media (hover: hover) {
+    .btn:hover { filter: brightness(1.06); }
+  }
+  .word-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 7px 10px;
+    margin: -10px 0 22px;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+  .tag {
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .tag.known { background: var(--known-soft); color: var(--known-text); }
+  .tag.unknown { background: var(--unknown-soft); color: var(--unknown-text); }
+  .details { animation: rise .22s ease both; }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  .fields { margin: 0; }
+  .field { padding: 14px 0; border-top: 1px solid var(--line); }
+  .field:first-child { padding-top: 2px; border-top: none; }
+  .field dt {
+    margin-bottom: 5px;
+    font-size: 11px;
+    letter-spacing: .1em;
+    color: var(--muted);
+  }
+  .field dd {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.65;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+  .reveal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .btn.next {
+    flex: 1;
+    padding: 16px;
+    background: var(--ink);
+    color: var(--card);
+    font-size: 17px;
+  }
+  .btn.mastered {
+    flex: none;
+    padding: 16px 20px;
+    border: 1px solid var(--line);
+    background: var(--soft);
+    color: var(--ink);
+  }
+  .neighbors {
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--line);
+  }
+  .neighbor-group + .neighbor-group { margin-top: 15px; }
+  .neighbor-label {
+    margin-bottom: 8px;
+    font-size: 11px;
+    letter-spacing: .1em;
+    color: var(--muted);
+  }
+  .chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .chip {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--soft);
+  }
+  .chip-word {
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", "Songti SC", serif;
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+  .chip-meaning {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+  .footer {
+    padding: 20px 4px 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .footer-actions { display: flex; align-items: center; gap: 2px; }
+  .link {
+    padding: 6px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .icon-btn:focus-visible, .restore-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(20, 20, 16, .42);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+  }
+  .sheet-panel {
+    display: flex;
+    flex-direction: column;
+    width: min(100%, 540px);
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    animation: rise .2s ease both;
+  }
+  .sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .sheet-head h2 { margin: 0; font-size: 17px; font-weight: 650; }
+  .sheet-count { margin-left: 4px; color: var(--muted); font-size: 13px; font-weight: 400; }
+  .icon-btn {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--soft);
+    color: var(--ink);
+    font: inherit;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .mastered-list {
+    overflow-y: auto;
+    padding: 4px 18px calc(18px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+  }
+  .mastered-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .mastered-item:last-child { border-bottom: none; }
+  .mastered-text { flex: 1; min-width: 0; }
+  .mastered-word {
+    display: block;
+    font-family: Georgia, "Times New Roman", "Songti SC", serif;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .mastered-meaning {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+  .restore-btn {
+    flex: none;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--soft);
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .mastered-empty {
+    padding: 44px 8px;
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+  }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    z-index: 80;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--card);
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    pointer-events: none;
+    transform: translateX(-50%);
+    animation: toast-in .18s ease both;
+  }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 6px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn { transition: none; }
+    .details, .sheet-panel, .toast { animation: none; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <span class="brand">GRE 单词</span>
+    <span class="today" id="todayStats"></span>
+  </header>
+
+  <section class="card">
+    <p class="prompt" id="prompt">认识这个单词吗？</p>
+    <h1 class="word" id="word"></h1>
+    <div class="word-meta" id="wordMeta" hidden>
+      <span class="tag" id="resultTag"></span>
+      <span id="countText"></span>
+    </div>
+
+    <div class="actions" id="actions">
+      <button class="btn unknown" id="btnUnknown" type="button">不认识</button>
+      <button class="btn known" id="btnKnown" type="button">认识</button>
+    </div>
+
+    <div class="details" id="details" hidden>
+      <dl class="fields">
+        <div class="field" id="meaningField">
+          <dt>词义</dt>
+          <dd id="meaning"></dd>
+        </div>
+        <div class="field" id="synField" hidden>
+          <dt>近义词</dt>
+          <dd id="synonyms"></dd>
+        </div>
+        <div class="field" id="relField" hidden>
+          <dt>相关</dt>
+          <dd id="related"></dd>
+        </div>
+      </dl>
+      <div class="reveal-actions">
+        <button class="btn mastered" id="btnMastered" type="button">标熟</button>
+        <button class="btn next" id="btnNext" type="button">下一个 →</button>
+      </div>
+      <section class="neighbors" id="neighbors" aria-label="相邻词"></section>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span id="overallStats"></span>
+    <div class="footer-actions">
+      <button class="link" id="masteredBtn" type="button">熟词 (0)</button>
+      <button class="link" id="reset" type="button">重置统计</button>
+    </div>
+  </footer>
+</main>
+
+<div class="sheet" id="masteredSheet" hidden>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="masteredTitle">
+    <header class="sheet-head">
+      <h2 id="masteredTitle">熟词列表 <span class="sheet-count" id="masteredSheetCount"></span></h2>
+      <button class="icon-btn" id="closeMastered" type="button" aria-label="关闭">✕</button>
+    </header>
+    <div class="mastered-list" id="masteredList"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<noscript><p style="text-align:center;padding:24px">需要启用 JavaScript 才能使用。</p></noscript>
+
+<script>
+(() => {
+  'use strict';
+
+  const WORDS = [{"seq":"1001","word":"minute","meaning":"adj. extremely small","synonyms":"diminutive, minuscule","related":""},{"seq":"1002","word":"bitter","meaning":"adj. harsh （尖酸刻薄）","synonyms":"acrimonious","related":"a bitter dispute"},{"seq":"1003","word":"modest","meaning":"adj. limited","synonyms":"","related":""},{"seq":"1004","word":"lay","meaning":"adj. not professional","synonyms":"avocational","related":"layman layperson"},{"seq":"1005","word":"base","meaning":"adj. morally bad","synonyms":"vile","related":"base sentiment"},{"seq":"1006","word":"alienate","meaning":"v. isolate, emotionally dissociate","synonyms":"","related":""},{"seq":"1007","word":"dense","meaning":"adj. hard to understand","synonyms":"inaccessible","related":""},{"seq":"1008","word":"neat","meaning":"adj. pure\nadj. simple but clever","synonyms":"unalloyed","related":""},{"seq":"1009","word":"unequal","meaning":"adj. incapable","synonyms":"inept","related":"unequal to = inept at,  eptitude = competence"},{"seq":"1010","word":"fluid","meaning":"adj. volatile","synonyms":"","related":""},{"seq":"1011","word":"august","meaning":"adj. large and impressive","synonyms":"","related":"augment"},{"seq":"1012","word":"green","meaning":"adj. lack in experience","synonyms":"callow","related":"green hand"},{"seq":"1013","word":"substantial","meaning":"adj. strongly built","synonyms":"sound","related":""},{"seq":"1014","word":"winning","meaning":"adj. engaging","synonyms":"winsome compelling","related":""},{"seq":"1015","word":"choice","meaning":"adj. high quality","synonyms":"prime","related":""},{"seq":"1016","word":"meet","meaning":"adj. fitting, suitable","synonyms":"condign","related":""},{"seq":"1017","word":"betray","meaning":"v. show, indicate（无意中透露）","synonyms":"","related":""},{"seq":"1018","word":"mask","meaning":"v. hide","synonyms":"belie, veil（面纱，掩盖）","related":"unveil"},{"seq":"1019","word":"flag","meaning":"v. fall off","synonyms":"languish","related":""},{"seq":"1020","word":"ballon","meaning":"v. increase rapidly","synonyms":"","related":""},{"seq":"1021","word":"entrance","meaning":"v. appeal","synonyms":"","related":"be entranced by"},{"seq":"1022","word":"list","meaning":"v. incline to one side","synonyms":"","related":"erect（竖直的）"},{"seq":"1023","word":"champion","meaning":"v. support and protect","synonyms":"defend","related":""},{"seq":"1024","word":"occasion","meaning":"v. cause","synonyms":"","related":""},{"seq":"1025","word":"ape","meaning":"v. imitate","synonyms":"mimic","related":""},{"seq":"1026","word":"qualify","meaning":"v. limit or narrow","synonyms":"","related":"qualified（有保留的）unqualified（绝对的）"},{"seq":"1027","word":"inform","meaning":"v. influence","synonyms":"","related":""},{"seq":"1028","word":"appropriate","meaning":"v. take without permission","synonyms":"borrow","related":"appropriate concepts"},{"seq":"1029","word":"secure","meaning":"v. obtain","synonyms":"earn, capture","related":""},{"seq":"1030","word":"husband","meaning":"v. use economically","synonyms":"","related":"squander（挥霍）"},{"seq":"1031","word":"project","meaning":"v. predict","synonyms":"","related":"projection（预测）"},{"seq":"1032","word":"stomach","meaning":"v. tolerate","synonyms":"brook","related":"usually used in negative"},{"seq":"1033","word":"assume","meaning":"v. undertake","synonyms":"","related":"assume responsibility"},{"seq":"1034","word":"stem","meaning":"v. stop sth.","synonyms":"block, check","related":""},{"seq":"1035","word":"arrest","meaning":"v. stop sth.\nv. attract","synonyms":"","related":"arrest the decline\narrest your attention"},{"seq":"2001","word":"temper","meaning":"v. moderate","synonyms":"mitigate, neutralize","related":"temperate"},{"seq":"2002","word":"wage","meaning":"v. carry on, commence","synonyms":"","related":"wage a battle"},{"seq":"2003","word":"skirt","meaning":"v. avoid","synonyms":"circumvent, bypass","related":""},{"seq":"2004","word":"represent","meaning":"v. portray","synonyms":"","related":"represent sb. As"},{"seq":"2005","word":"address","meaning":"v. deal with","synonyms":"","related":""},{"seq":"2006","word":"founder","meaning":"v. fail utterly","synonyms":"","related":"founder on a lack of sth."},{"seq":"2007","word":"discount","meaning":"v. minimize the importance","synonyms":"slight","related":""},{"seq":"2008","word":"contain","meaning":"v. control or restrain","synonyms":"","related":""},{"seq":"2009","word":"couch","meaning":"v. express ideas","synonyms":"","related":""},{"seq":"2010","word":"court","meaning":"v. try to obtain sth.\nv. cause or invite sth.","synonyms":"woo","related":""},{"seq":"2011","word":"follow","meaning":"v. to develop in the same way","synonyms":"","related":"exhaust（反义）"},{"seq":"2012","word":"tend","meaning":"v. care for","synonyms":"foster","related":""},{"seq":"2013","word":"weather","meaning":"v. to come safely through","synonyms":"","related":"weather the strom"},{"seq":"2014","word":"affect","meaning":"v. pretend","synonyms":"","related":""},{"seq":"2015","word":"sway","meaning":"v. influence","synonyms":"","related":""},{"seq":"2016","word":"rail","meaning":"v. utter complaint","synonyms":"","related":""},{"seq":"2017","word":"sap","meaning":"v. gradually weaken","synonyms":"undermine","related":""},{"seq":"2018","word":"economy","meaning":"n. concise use of sth","synonyms":"brevity","related":""},{"seq":"2019","word":"fiction","meaning":"n. sth imagined","synonyms":"invention","related":"fictitious"},{"seq":"2020","word":"invention","meaning":"n. imagination","synonyms":"fiction","related":""},{"seq":"2021","word":"complaint","meaning":"n. bodily illness","synonyms":"malady","related":""},{"seq":"2022","word":"condition","meaning":"n. illness","synonyms":"malady","related":""},{"seq":"2023","word":"wealth","meaning":"n. a large amount of","synonyms":"profusion","related":""},{"seq":"2024","word":"want","meaning":"n. lack","synonyms":"scarcity, dearth, paucity","related":""},{"seq":"2025","word":"design","meaning":"n. purpose, intention","synonyms":"","related":""},{"seq":"2026","word":"industry","meaning":"n. diligence","synonyms":"assiduousness","related":"industrious"},{"seq":"2027","word":"scholarship","meaning":"n. the study","synonyms":"","related":""},{"seq":"2028","word":"aside","meaning":"n. departure from a main theme","synonyms":"digression","related":""},{"seq":"2029","word":"community","meaning":"n. common character","synonyms":"agreement","related":""},{"seq":"2030","word":"credit","meaning":"n. praise, approval","synonyms":"","related":""},{"seq":"2031","word":"faculty","meaning":"n. ability","synonyms":"","related":""},{"seq":"2032","word":"health","meaning":"n. sth thriving","synonyms":"","related":""},{"seq":"2033","word":"license","meaning":"n. freedom","synonyms":"latitude","related":""},{"seq":"2034","word":"might","meaning":"n. great strength","synonyms":"","related":""},{"seq":"2035","word":"parallel","meaning":"n. similarity","synonyms":"","related":""},{"seq":"2036","word":"promise","meaning":"n. prospect","synonyms":"","related":"promising"},{"seq":"2037","word":"signature","meaning":"n. distinguishing mark","synonyms":"","related":""},{"seq":"2038","word":"strait","meaning":"n. position of difficulty","synonyms":"","related":""},{"seq":"2039","word":"slip","meaning":"n. mistake","synonyms":"","related":""},{"seq":"3001","word":"restive","meaning":"adj. restless","synonyms":"restless, skittish, fractious","related":""},{"seq":"3002","word":"impersonal","meaning":"adj. having no personal connection","synonyms":"dispassionate","related":""},{"seq":"3003","word":"disinterested","meaning":"adj. not influenced by selfish motives","synonyms":"dispassionate, impartial","related":""},{"seq":"3004","word":"dispassionate","meaning":"adj. freedom from bias","synonyms":"disinterested","related":""},{"seq":"3005","word":"impassioned","meaning":"adj. filled with passion","synonyms":"fiery","related":""},{"seq":"3006","word":"competing","meaning":"adj. in conflict","synonyms":"contending","related":""},{"seq":"3007","word":"diverting","meaning":"adj. entertaining, amusing","synonyms":"","related":""},{"seq":"3008","word":"unassuming","meaning":"adj. modest","synonyms":"","related":"assume(承担)"},{"seq":"3009","word":"aggrandize","meaning":"v. amplify","synonyms":"","related":""},{"seq":"3010","word":"self-defeating","meaning":"adj. 适得其反","synonyms":"","related":""},{"seq":"3011","word":"intelligible","meaning":"adj. easy to understand","synonyms":"comprehensible","related":""},{"seq":"3012","word":"involved","meaning":"adj. intricate, complex","synonyms":"complicated","related":""},{"seq":"3013","word":"measured","meaning":"adj. 斟酌的 克制的","synonyms":"","related":""},{"seq":"3014","word":"prohibitive","meaning":"adj. preclude use or purchase","synonyms":"exorbitant","related":""},{"seq":"3015","word":"enjoin","meaning":"v. prohibit","synonyms":"proscribe","related":""},{"seq":"3016","word":"hew to","meaning":"adhere to","synonyms":"","related":""},{"seq":"3017","word":"conform to","meaning":"adhere to","synonyms":"","related":""},{"seq":"3018","word":"square with","meaning":"adhere to","synonyms":"","related":"square 客观公正"},{"seq":"3019","word":"at odds with","meaning":"conflict with","synonyms":"","related":""},{"seq":"3020","word":"keep abreast of","meaning":"stay updated","synonyms":"","related":""},{"seq":"3021","word":"hark back to","meaning":"remind of sth in the past","synonyms":"","related":""},{"seq":"3022","word":"teem with","meaning":"be full of sth","synonyms":"","related":""},{"seq":"3023","word":"ferret out","meaning":"figure out","synonyms":"","related":""},{"seq":"3024","word":"with dispatch","meaning":"quickly and efficiently","synonyms":"with celerity","related":""},{"seq":"3025","word":"in hindsight","meaning":"retrospect","synonyms":"","related":"foresight - hindsight"},{"seq":"3026","word":"flush with","meaning":"be level with, overflowing with","synonyms":"","related":""},{"seq":"3027","word":"usher in","meaning":"begin","synonyms":"","related":"usher 引领人"},{"seq":"3028","word":"riven by","meaning":"split apart","synonyms":"","related":"rive 撕开"},{"seq":"3029","word":"cede to","meaning":"割让, 让给","synonyms":"left to","related":""},{"seq":"3030","word":"balk at","meaning":"refuse or hesitate to accept","synonyms":"","related":""},{"seq":"3031","word":"stave off","meaning":"prevent","synonyms":"","related":""},{"seq":"3032","word":"at a premium","meaning":"稀缺","synonyms":"","related":""},{"seq":"3033","word":"stem from","meaning":"derive from","synonyms":"","related":""},{"seq":"3034","word":"live up to","meaning":"realize","synonyms":"","related":""},{"seq":"3035","word":"hold up","meaning":"use sth as example","synonyms":"","related":""},{"seq":"3036","word":"rule out","meaning":"preclude","synonyms":"","related":""},{"seq":"3037","word":"no mean feat","meaning":"绝非易事","synonyms":"","related":"mean 平庸的"},{"seq":"3038","word":"anything but","meaning":"一点也不","synonyms":"","related":""},{"seq":"3039","word":"shy away","meaning":"avoid","synonyms":"","related":""},{"seq":"4001","word":"plausible","meaning":"adj. 说得过去的","synonyms":"believable, credible","related":""},{"seq":"4002","word":"derivative","meaning":"adj. 衍生的","synonyms":"","related":""},{"seq":"4003","word":"portentous","meaning":"adj. improtant in indicating future events","synonyms":"","related":"portent 预示"},{"seq":"4004","word":"magnanimous","meaning":"adj. 宽宏大量","synonyms":"","related":""},{"seq":"4005","word":"jaded","meaning":"adj. 厌倦的, 麻了","synonyms":"cynical","related":""},{"seq":"4006","word":"lurid","meaning":"adj. 耸人听闻的","synonyms":"sensational","related":""},{"seq":"4007","word":"snobbish","meaning":"adj. 势利眼, 优越感","synonyms":"","related":""},{"seq":"4008","word":"obtrusive","meaning":"adj. 辣眼睛的","synonyms":"conspicuous","related":""},{"seq":"4009","word":"inveterate","meaning":"adj. 根深蒂固的","synonyms":"entrenched","related":""},{"seq":"4010","word":"expedient","meaning":"adj. 可行的, 说得过去的","synonyms":"","related":""},{"seq":"4011","word":"anachronistic","meaning":"adj. 过时的/时代错误（穿越的）","synonyms":"","related":""},{"seq":"4012","word":"interchangeable","meaning":"adj. 可互换的/类似的","synonyms":"fungible","related":""},{"seq":"4013","word":"unqualified","meaning":"adj. 彻底的/绝对的","synonyms":"unalloyed","related":""},{"seq":"4014","word":"unalloyed","meaning":"adj. 彻底的/绝对的","synonyms":"","related":""},{"seq":"4015","word":"nuanced","meaning":"adj. subtle and complex","synonyms":"","related":""},{"seq":"4016","word":"anthropogenic","meaning":"adj. 人为的","synonyms":"","related":""},{"seq":"4017","word":"anthropomorphize","meaning":"v. 拟人化","synonyms":"","related":""},{"seq":"4018","word":"revisionist","meaning":"adj. 修正主义（反对传统）","synonyms":"","related":""},{"seq":"4019","word":"cynical","meaning":"adj. 怀疑人性的, 对人类悲观的","synonyms":"","related":""},{"seq":"4020","word":"stoicism","meaning":"adj. 佛了 坦然接受","synonyms":"","related":""},{"seq":"4021","word":"verisimilitude","meaning":"n. 写实主义","synonyms":"","related":""},{"seq":"4022","word":"awe","meaning":"n. fear","synonyms":"","related":""},{"seq":"4023","word":"dissent","meaning":"n. 反主流意见","synonyms":"","related":""},{"seq":"4024","word":"anecdote","meaning":"n. interesting story","synonyms":"","related":""},{"seq":"4025","word":"misnomer","meaning":"n. 用词不当","synonyms":"","related":""},{"seq":"4026","word":"caricature","meaning":"n. 夸张的描述/illustration","synonyms":"","related":""},{"seq":"4027","word":"parody","meaning":"n. 恶搞","synonyms":"","related":""},{"seq":"4028","word":"levity","meaning":"n. 不严肃的处理","synonyms":"","related":""},{"seq":"4029","word":"dichotomy","meaning":"n. 对立","synonyms":"","related":""},{"seq":"4030","word":"anathema","meaning":"n. 令人厌恶的事","synonyms":"repellent","related":""},{"seq":"4031","word":"immediacy","meaning":"n. 直观性","synonyms":"","related":""},{"seq":"4032","word":"conjecture","meaning":"n. v. 无证据的猜测","synonyms":"spectulate","related":""},{"seq":"4033","word":"spectulate","meaning":"v. 无证据的猜测","synonyms":"","related":""},{"seq":"4034","word":"surmise","meaning":"v. infer","synonyms":"","related":""},{"seq":"4035","word":"extrapolate","meaning":"v. infer by extending known information","synonyms":"","related":""},{"seq":"4036","word":"abet","meaning":"v. 煽动","synonyms":"","related":""},{"seq":"4037","word":"purport","meaning":"v. claim 宣称","synonyms":"","related":""},{"seq":"4038","word":"compound","meaning":"v. 加剧","synonyms":"aggravate","related":""},{"seq":"4039","word":"compromise","meaning":"v. 损害","synonyms":"","related":""},{"seq":"5001","word":"all-emcompassing","meaning":"including everything","synonyms":"comprehensive","related":""},{"seq":"5002","word":"hit-or-miss","meaning":"时好时坏","synonyms":"","related":""},{"seq":"5003","word":"cure-all","meaning":"n. remedy for everything","synonyms":"parancea","related":""},{"seq":"5004","word":"businesslike","meaning":"adj. 务实高效","synonyms":"no-nonsense","related":""},{"seq":"5005","word":"underhand","meaning":"adj. 秘密的卑鄙的","synonyms":"","related":"aboveboard 光明正大"},{"seq":"5006","word":"underscore","meaning":"v. emphasize","synonyms":"accent","related":""},{"seq":"5007","word":"downplay","meaning":"v. 淡化","synonyms":"de-emphasize","related":""},{"seq":"5008","word":"streamline","meaning":"v. 提高效率","synonyms":"","related":""},{"seq":"5009","word":"backfire","meaning":"v. 事与愿违","synonyms":"","related":""},{"seq":"5010","word":"uneven","meaning":"adj. 不规律的","synonyms":"","related":""},{"seq":"5011","word":"inconstant","meaning":"adj. 异变的","synonyms":"capricious","related":""},{"seq":"5012","word":"inept","meaning":"adj. 笨拙的","synonyms":"unequal","related":""},{"seq":"5013","word":"maladaptive","meaning":"adj. 不适应的","synonyms":"","related":""},{"seq":"5014","word":"falsify","meaning":"v. 伪造","synonyms":"","related":""},{"seq":"5015","word":"tendentious","meaning":"adj. 有偏见的","synonyms":"","related":""},{"seq":"5016","word":"rigorous","meaning":"adj. 严谨的","synonyms":"","related":"rigor 严谨"},{"seq":"5017","word":"errant","meaning":"adj. 跑题的","synonyms":"","related":""},{"seq":"5018","word":"materialize","meaning":"v. realize","synonyms":"","related":""},{"seq":"5019","word":"expendable","meaning":"adj. 可消耗的, 多余的","synonyms":"superfluous","related":""},{"seq":"5020","word":"favorable","meaning":"adj. 有利的","synonyms":"auspicious","related":""},{"seq":"5021","word":"rudimentary","meaning":"adj. 基础的","synonyms":"elemental","related":""},{"seq":"5022","word":"responsive","meaning":"adj. 积极响应的","synonyms":"","related":""},{"seq":"5023","word":"pervasive","meaning":"adj. 无处不在的","synonyms":"ubiquitious","related":""},{"seq":"6001","word":"avant-garde","meaning":"adj. pioneering","synonyms":"","related":""},{"seq":"6002","word":"supplant","meaning":"v. 取代, 代替","synonyms":"","related":""},{"seq":"6003","word":"engender","meaning":"v. generate","synonyms":"","related":""},{"seq":"6004","word":"novice","meaning":"n. rookie","synonyms":"neophyte","related":""},{"seq":"6005","word":"insulate","meaning":"v. 隔离","synonyms":"","related":""},{"seq":"6006","word":"composed","meaning":"adj. 镇定的","synonyms":"","related":""},{"seq":"6007","word":"enterprising","meaning":"adj. 有进取心的","synonyms":"","related":""},{"seq":"6008","word":"heterogeneous","meaning":"adj. 多种的, 多元的","synonyms":"","related":""},{"seq":"6009","word":"overlook","meaning":"v. ignore","synonyms":"","related":""},{"seq":"6010","word":"dispel","meaning":"v. 打消, 驱散","synonyms":"","related":""},{"seq":"6011","word":"douse","meaning":"v. 熄灭","synonyms":"","related":""},{"seq":"6012","word":"impair","meaning":"v. 损害","synonyms":"","related":""},{"seq":"6013","word":"contest","meaning":"v. 质疑","synonyms":"","related":""},{"seq":"6014","word":"latitude","meaning":"n. freedom","synonyms":"leeway","related":""},{"seq":"6015","word":"yardstick","meaning":"n. 评判标准","synonyms":"","related":""},{"seq":"6016","word":"sweep","meaning":"n. 广度","synonyms":"range, purview","related":""},{"seq":"6017","word":"fusion","meaning":"n. 混合","synonyms":"","related":""},{"seq":"6018","word":"paragon","meaning":"n. 模范","synonyms":"","related":""},{"seq":"7001","word":"paucity","meaning":"n. 缺乏, 不足","synonyms":"dearth","related":""},{"seq":"7002","word":"dearth","meaning":"n. 缺乏, 不足","synonyms":"paucity","related":""},{"seq":"7003","word":"surfeit","meaning":"n. 过多","synonyms":"surplus, plethora","related":""},{"seq":"7004","word":"surplus","meaning":"n. 过多","synonyms":"surfeit, plethora","related":""},{"seq":"7005","word":"plethora","meaning":"n. 过多","synonyms":"surfeit, surplus","related":"ple- fill（装载）"},{"seq":"7006","word":"replete","meaning":"adj. 充满的","synonyms":"teeming","related":""},{"seq":"7007","word":"deplete","meaning":"v. 耗尽","synonyms":"","related":""},{"seq":"7008","word":"complement","meaning":"v. 补充","synonyms":"","related":""},{"seq":"7009","word":"compliment","meaning":"n. 赞扬","synonyms":"","related":""},{"seq":"7010","word":"supplementary","meaning":"v. 补充的","synonyms":"","related":""},{"seq":"7011","word":"implement","meaning":"v. 执行","synonyms":"","related":""},{"seq":"7012","word":"panacea","meaning":"n. 万能药","synonyms":"cure-all","related":""},{"seq":"7013","word":"malady","meaning":"n. 疾病","synonyms":"","related":""},{"seq":"7014","word":"malign","meaning":"v. 诽谤\nadj. 有害的","synonyms":"","related":""},{"seq":"7015","word":"malodorous","meaning":"adj. 难闻的","synonyms":"","related":""},{"seq":"7016","word":"maladroit","meaning":"adj. 笨拙的","synonyms":"","related":""},{"seq":"7017","word":"malfeasance","meaning":"n. 违法, 渎职","synonyms":"","related":""},{"seq":"7018","word":"fraudulence","meaning":"n. fraud","synonyms":"","related":""},{"seq":"7019","word":"acerbic","meaning":"adj. 言语锐利, 尖酸刻薄","synonyms":"acrimonious, vitriolic, caustic, mordant","related":""},{"seq":"7020","word":"acrimonious","meaning":"adj. 尖酸刻薄","synonyms":"acerbic, vitriolic, caustic, mordant","related":"acrimony"},{"seq":"7021","word":"vitriolic","meaning":"adj. 尖酸刻薄","synonyms":"acerbic, acrimonious, caustic, mordant","related":"vitriol 硫酸"},{"seq":"7022","word":"caustic","meaning":"adj. 尖酸刻薄","synonyms":"acerbic, acrimonious, vitriolic, mordant","related":""},{"seq":"7023","word":"mordant","meaning":"adj. 尖酸刻薄","synonyms":"acerbic, acrimonious, vitriolic, caustic","related":""},{"seq":"7024","word":"insular","meaning":"adj. 狭隘的","synonyms":"parochial, provincial","related":""},{"seq":"7025","word":"parochial","meaning":"adj. 狭隘的","synonyms":"insular, provincial","related":""},{"seq":"7026","word":"provincial","meaning":"adj. 狭隘的","synonyms":"parochial, insular","related":""},{"seq":"7027","word":"cosmopolitan","meaning":"adj. 见多识广的","synonyms":"sophisticated","related":""},{"seq":"7028","word":"limpid","meaning":"adj, 清澈的, 易懂的","synonyms":"pellucid,  transparent","related":""},{"seq":"7029","word":"pellucid","meaning":"adj. 清澈的, 易懂的","synonyms":"limpid, transparent","related":""},{"seq":"7030","word":"scrutinize","meaning":"v. 仔细检查","synonyms":"","related":""},{"seq":"7031","word":"inscrutable","meaning":"adj. 难懂的","synonyms":"","related":""},{"seq":"7032","word":"unfathomable","meaning":"adj. 难懂的","synonyms":"","related":""},{"seq":"7033","word":"fathom","meaning":"v. understand","synonyms":"","related":""},{"seq":"7034","word":"impenetrable","meaning":"adj. 难懂的","synonyms":"","related":""},{"seq":"7035","word":"recondite","meaning":"adj. 小众难懂的","synonyms":"","related":""},{"seq":"7036","word":"esoteric","meaning":"adj. 深奥难懂的","synonyms":"","related":""},{"seq":"7037","word":"arcane","meaning":"adj. 深奥难懂的（神秘的）","synonyms":"","related":""},{"seq":"7038","word":"abstruse","meaning":"adj. 深奥难懂的","synonyms":"","related":""},{"seq":"7039","word":"intrude","meaning":"v. 闯入","synonyms":"","related":""},{"seq":"7040","word":"opaque","meaning":"adj. 难懂的","synonyms":"","related":""},{"seq":"7041","word":"obscure","meaning":"v. 使模糊\nadj. 默默无闻的\nadj. 难懂的","synonyms":"","related":""},{"seq":"7042","word":"enigmatic","meaning":"adj. 神秘的","synonyms":"","related":""},{"seq":"7043","word":"conundrum","meaning":"n. 难题, 谜题","synonyms":"riddle, puzzle","related":""},{"seq":"7044","word":"riddle","meaning":"n. 难题, 谜题","synonyms":"","related":""},{"seq":"7045","word":"nonplus","meaning":"v. 使困惑","synonyms":"","related":""},{"seq":"7046","word":"perplex","meaning":"v. 使困惑","synonyms":"","related":""},{"seq":"7047","word":"flummox","meaning":"v. 使困惑","synonyms":"","related":""},{"seq":"7048","word":"baffle","meaning":"v. 使困惑","synonyms":"","related":"baffling 迷惑"},{"seq":"7049","word":"confound","meaning":"v. 使困惑, 混淆","synonyms":"","related":""},{"seq":"7050","word":"obfuscate","meaning":"v. 使困惑","synonyms":"","related":""},{"seq":"8001","word":"elude","meaning":"v. avoid","synonyms":"","related":"elusive 难以捕捉的"},{"seq":"8002","word":"evade","meaning":"v. avoid","synonyms":"equivocal, cagey","related":"evasive 逃避的"},{"seq":"8003","word":"eschew","meaning":"v. avoid","synonyms":"shun, forswear","related":""},{"seq":"8004","word":"shun","meaning":"v. avoid","synonyms":"","related":""},{"seq":"8005","word":"dodge","meaning":"v. 躲避","synonyms":"","related":""},{"seq":"8006","word":"sidestep","meaning":"v. 躲避","synonyms":"","related":""},{"seq":"8007","word":"bypass","meaning":"v. 绕过","synonyms":"","related":""},{"seq":"8008","word":"circumvent","meaning":"v. 绕过","synonyms":"","related":""},{"seq":"8009","word":"circumspect","meaning":"adj. 谨慎的","synonyms":"wary, prudent","related":""},{"seq":"8010","word":"circumscribe","meaning":"v. 限制","synonyms":"confine","related":"外接圆"},{"seq":"8011","word":"confine","meaning":"v. 限制","synonyms":"","related":""},{"seq":"8012","word":"definitive","meaning":"adj. 权威性的","synonyms":"authoritative","related":""},{"seq":"8013","word":"affinity","meaning":"n. 相似\nn. 喜爱","synonyms":"","related":""},{"seq":"8014","word":"utopian","meaning":"adj. 不切实际的","synonyms":"quixotic","related":""},{"seq":"8015","word":"quixotic","meaning":"adj. 不切实际的","synonyms":"","related":""},{"seq":"8016","word":"fanciful","meaning":"adj. 不切实际的","synonyms":"utopian, quixotic","related":""},{"seq":"8017","word":"universal","meaning":"adj. 无处不在的","synonyms":"ubiquitous, omnipresent","related":""},{"seq":"8018","word":"ubiquitous","meaning":"adj. 无处不在的","synonyms":"","related":""},{"seq":"8019","word":"omnipresent","meaning":"adj. 无处不在的","synonyms":"ubiquitous","related":""},{"seq":"8020","word":"diminutive","meaning":"adj. 极小的","synonyms":"miniscule, minute","related":""},{"seq":"8021","word":"miniscule","meaning":"adj. 极小的","synonyms":"","related":""},{"seq":"8022","word":"benign","meaning":"adj. harmless","synonyms":"innocuous","related":""},{"seq":"8023","word":"innocuous","meaning":"adj. harmless","synonyms":"benign, inoffensive","related":""},{"seq":"8024","word":"noxious","meaning":"adj. 有毒的","synonyms":"","related":""},{"seq":"8025","word":"pernicious","meaning":"adj. 有害的","synonyms":"detrimental, deleterious","related":""},{"seq":"8026","word":"deleterious","meaning":"adj. 有害的","synonyms":"inimical, detrimental","related":""},{"seq":"8027","word":"detrimental","meaning":"adj. 有害的","synonyms":"","related":""},{"seq":"8028","word":"corrosive","meaning":"adj. 有害的","synonyms":"deleterious","related":""},{"seq":"8029","word":"incursion","meaning":"n. 入侵","synonyms":"","related":""},{"seq":"8030","word":"precursor","meaning":"n. 先驱","synonyms":"forerunner, harbinger","related":""},{"seq":"8031","word":"cursory","meaning":"adj. 仓促的","synonyms":"","related":""},{"seq":"8032","word":"perfunctory","meaning":"adj. 敷衍的","synonyms":"superficial","related":""},{"seq":"8033","word":"hasty","meaning":"adj. 草率的","synonyms":"","related":""},{"seq":"8034","word":"discursive","meaning":"adj. 跑题的, 散漫的","synonyms":"rambling","related":""},{"seq":"8035","word":"digress","meaning":"v. 跑题","synonyms":"","related":""},{"seq":"8036","word":"transgress","meaning":"v. 违反","synonyms":"violate, contravene","related":""},{"seq":"8037","word":"outmoded","meaning":"adj. 过时的","synonyms":"","related":""},{"seq":"8038","word":"obsolete","meaning":"adj. 过时的","synonyms":"","related":""},{"seq":"8039","word":"archaic","meaning":"adj. 老的","synonyms":"","related":"archaeology"},{"seq":"8040","word":"antediluvian","meaning":"adj. 过时的","synonyms":"","related":"deluge 大洪水（诺亚大洪水）"},{"seq":"8041","word":"gullible","meaning":"adj. 容易轻信的","synonyms":"credulous","related":""},{"seq":"8042","word":"credulous","meaning":"adj. 容易轻信的","synonyms":"gullible","related":""},{"seq":"9001","word":"transient","meaning":"adj. 短暂的","synonyms":"momentary, transitory","related":""},{"seq":"9002","word":"transitory","meaning":"adj. 短暂的","synonyms":"ephemeral","related":""},{"seq":"9003","word":"ephemeral","meaning":"adj. 短暂的","synonyms":"","related":""},{"seq":"9004","word":"evanescent","meaning":"adj. 短暂的","synonyms":"ephemeral, momentary","related":""},{"seq":"9005","word":"fleeting","meaning":"adj. 短暂的","synonyms":"evanescent, ephemeral","related":""},{"seq":"9006","word":"abiding","meaning":"adj. 持久的","synonyms":"enduring","related":""},{"seq":"9007","word":"enduring","meaning":"adj. 持久的","synonyms":"","related":""},{"seq":"9008","word":"obdurate","meaning":"adj. 固执的","synonyms":"stubborn","related":""},{"seq":"9009","word":"comprehend","meaning":"v. 理解\nv. 包含","synonyms":"","related":""},{"seq":"9010","word":"exhaustive","meaning":"adj. 全面的","synonyms":"cpmprehensive, encyclopedic","related":""},{"seq":"9011","word":"encyclopedic","meaning":"adj. 全面的","synonyms":"","related":"encyclopedia"},{"seq":"9012","word":"apprehend","meaning":"v. 担心\nv. 抓捕\nv. 理解","synonyms":"","related":"prehend- 抓"},{"seq":"9013","word":"apprehensive","meaning":"adj. 担心的","synonyms":"uneasy","related":""},{"seq":"9014","word":"reprehensible","meaning":"adj. 应受谴责的","synonyms":"deplorable","related":"reprehend 谴责"},{"seq":"9015","word":"deplorable","meaning":"adj. 应受谴责的","synonyms":"","related":"deplore 谴责"},{"seq":"9016","word":"occlude","meaning":"v. 阻塞","synonyms":"block","related":""},{"seq":"9017","word":"preclude","meaning":"v. 预先阻止","synonyms":"prevent","related":""},{"seq":"9018","word":"prominent","meaning":"adj. 显著的, 突出的","synonyms":"salient, illustrious","related":""},{"seq":"9019","word":"eminent","meaning":"adj. 著名的","synonyms":"successful","related":""},{"seq":"9020","word":"imminent","meaning":"adj. 即将发生的","synonyms":"","related":""},{"seq":"9021","word":"voluble","meaning":"adj. 话多的, 健谈的","synonyms":"loquacious","related":""},{"seq":"9022","word":"garrulous","meaning":"adj. 话多的, 啰嗦的","synonyms":"loquacious","related":""},{"seq":"9023","word":"loquacious","meaning":"adj. 话多的, 啰嗦的","synonyms":"","related":"eloquent 口才好的"},{"seq":"9024","word":"verbose","meaning":"adj. 冗长的, 啰嗦的","synonyms":"","related":""},{"seq":"9025","word":"prolix","meaning":"adj. 冗长的, 啰嗦的","synonyms":"","related":"prolific 多产的"},{"seq":"9026","word":"taciturn","meaning":"adj. 话少的, 沉默寡言的","synonyms":"laconic,reticent","related":"tacit 默许的"},{"seq":"9027","word":"reticent","meaning":"adj. 话少的, 沉默寡言的","synonyms":"taciturn","related":""},{"seq":"9028","word":"laconic","meaning":"adj. 话少的, 沉默寡言的","synonyms":"","related":""},{"seq":"9029","word":"succinct","meaning":"adj. 简洁的","synonyms":"","related":""},{"seq":"9030","word":"terse","meaning":"adj. 简洁的, 过于简洁的","synonyms":"succinct","related":""},{"seq":"9031","word":"pithy","meaning":"adj. 简洁的, 简明扼要","synonyms":"succinct","related":""},{"seq":"9032","word":"concise","meaning":"adj. 简洁的","synonyms":"succinct","related":""},{"seq":"9033","word":"decisive","meaning":"adj. 确定无疑的","synonyms":"unmistakable","related":""},{"seq":"9034","word":"incisive","meaning":"adj. 犀利的","synonyms":"trenchant","related":""},{"seq":"9035","word":"trenchant","meaning":"adj. 犀利的","synonyms":"","related":""},{"seq":"9036","word":"entrenched","meaning":"adj. 根深蒂固的","synonyms":"","related":""},{"seq":"9037","word":"discrete","meaning":"adj. 离散的","synonyms":"seperated","related":""},{"seq":"9038","word":"discreet","meaning":"adj. 谨慎的","synonyms":"judicious","related":""},{"seq":"9039","word":"discretionary","meaning":"adj. 自主决定的","synonyms":"elective","related":""},{"seq":"9040","word":"ingenious","meaning":"adj. 天才的","synonyms":"","related":""},{"seq":"9041","word":"ingenuous","meaning":"adj. 天真的","synonyms":"","related":""},{"seq":"9042","word":"disingenuous","meaning":"adj. 心口不一的","synonyms":"","related":""},{"seq":"10001","word":"melleable","meaning":"adj. 可塑的","synonyms":"pliable. plastic","related":""},{"seq":"10002","word":"evenhanded","meaning":"adj. 客观公正的","synonyms":"imartial, disinterested, detached, objective","related":""},{"seq":"10003","word":"impartial","meaning":"adj. 客观公正的","synonyms":"evenhanded","related":""},{"seq":"10004","word":"partisan","meaning":"adj. 有偏见的","synonyms":"biased, prejudiced,sectarian","related":"bipartisanship"},{"seq":"10005","word":"hodgepodge","meaning":"n. 混合物, 大杂烩","synonyms":"patchwork, pastiche","related":""},{"seq":"10006","word":"pastiche","meaning":"n. 混合物, 模仿之作","synonyms":"hodgepodge","related":""},{"seq":"10007","word":"patchwork","meaning":"n. 混合物, 拼凑物","synonyms":"","related":""},{"seq":"10008","word":"covet","meaning":"v. 渴望, 觊觎","synonyms":"crave","related":""},{"seq":"10009","word":"covert","meaning":"adj. 秘密的, 隐藏的","synonyms":"clandestine","related":""},{"seq":"10010","word":"overt","meaning":"adj. 公开的","synonyms":"","related":""},{"seq":"10011","word":"clandestine","meaning":"adj. 秘密的, 隐藏的","synonyms":"surreptitious","related":""},{"seq":"10012","word":"surreptitious","meaning":"adj. 秘密的","synonyms":"clandestine","related":""},{"seq":"10013","word":"rapacious","meaning":"adj. 贪婪的","synonyms":"avaricious","related":""},{"seq":"10014","word":"voracious","meaning":"adj. 贪婪的, 如饥似渴的","synonyms":"insatiable, ravenous","related":""},{"seq":"10015","word":"avaricious","meaning":"adj. 贪婪的","synonyms":"","related":"avarice"},{"seq":"10016","word":"veracious","meaning":"adj. 真实的, 诚实的","synonyms":"candid","related":""},{"seq":"10017","word":"mendacious","meaning":"adj. 撒谎的, 虚假的","synonyms":"","related":"mendacity"},{"seq":"10018","word":"tenacious","meaning":"adj. 执着的","synonyms":"resolute","related":""},{"seq":"10019","word":"pugnacious","meaning":"adj. 好斗的","synonyms":"","related":""},{"seq":"10020","word":"impugn","meaning":"v. 指责, 质疑","synonyms":"assail","related":""},{"seq":"10021","word":"belligerent","meaning":"adj. 好斗的","synonyms":"cantankerous","related":""},{"seq":"10022","word":"truculent","meaning":"adj. 好斗的","synonyms":"pugnacious","related":""},{"seq":"10023","word":"hyperbole","meaning":"n. 夸张","synonyms":"exaggeration, overstatement","related":""},{"seq":"10024","word":"overstate","meaning":"v. 夸张","synonyms":"exaggerate","related":""},{"seq":"10025","word":"overblown","meaning":"adj. 被夸大的","synonyms":"inflated, exaggerated","related":""},{"seq":"10026","word":"inflated","meaning":"adv. 被夸大的","synonyms":"overblown","related":""},{"seq":"10027","word":"understatement","meaning":"n. 轻描淡写","synonyms":"downplay","related":""},{"seq":"10028","word":"underrate","meaning":"v. 低估","synonyms":"devalue","related":""},{"seq":"10029","word":"undercur","meaning":"v. 削弱, 破坏","synonyms":"undermine, vitiate","related":""},{"seq":"10030","word":"undermine","meaning":"v. 削弱, 破坏","synonyms":"upend, sap, subvert","related":""},{"seq":"10031","word":"eclectic","meaning":"adj. 多元的, 混合的","synonyms":"heterogeneous","related":""},{"seq":"10032","word":"heterogeneous","meaning":"adj. 多元的, 混合的","synonyms":"dissimilar, disparate, eclectic, variegated","related":""},{"seq":"10033","word":"motley","meaning":"adj. 多元的, 混合的","synonyms":"","related":""},{"seq":"10034","word":"disparate","meaning":"adj. 不同的","synonyms":"heterogeneous","related":"disparage 贬低"},{"seq":"10035","word":"disparage","meaning":"v. 贬低","synonyms":"denigrade","related":"disparate 不同的"},{"seq":"10036","word":"divergent","meaning":"adj. 不同的","synonyms":"","related":""},{"seq":"10037","word":"monolithic","meaning":"adj. 大统一的","synonyms":"uniform","related":""},{"seq":"10038","word":"scorn","meaning":"v. 鄙视, 轻视","synonyms":"","related":""},{"seq":"10039","word":"disdain","meaning":"v. 鄙视, 不屑","synonyms":"","related":""},{"seq":"10040","word":"contemptuous","meaning":"adj. 轻蔑的","synonyms":"","related":""},{"seq":"10041","word":"pejorative","meaning":"adj. 贬低的","synonyms":"","related":""},{"seq":"10042","word":"slight","meaning":"v. 轻视, 看不起\nv. 忽视","synonyms":"","related":""},{"seq":"10043","word":"disregard","meaning":"v. 忽视","synonyms":"defy, neglect","related":""},{"seq":"10044","word":"timid","meaning":"adj. 胆小的","synonyms":"diffident","related":""},{"seq":"10045","word":"timorous","meaning":"adj. 胆小的","synonyms":"timid, diffident, craven","related":""},{"seq":"10046","word":"diffident","meaning":"adj. 胆小的","synonyms":"","related":"confident - diffident"},{"seq":"11001","word":"bland","meaning":"adj. 乏味无聊的, 没味道的","synonyms":"vapid, insipid","related":"blend 搅拌"},{"seq":"11002","word":"banal","meaning":"adj. 乏味无聊的, 陈词滥调","synonyms":"trite, cliché, prosaic, mundane, hackneyed","related":""},{"seq":"11003","word":"dull","meaning":"adj. 乏味无聊的","synonyms":"humdrum, lackluster","related":""},{"seq":"11004","word":"dreary","meaning":"adj. 乏味无聊的","synonyms":"tedious","related":""},{"seq":"11005","word":"vapid","meaning":"adj. 乏味无聊的","synonyms":"insipid, banal, bland, jejune","related":""},{"seq":"11006","word":"insipid","meaning":"adj. 乏味无聊的","synonyms":"vapid, banal","related":""},{"seq":"11007","word":"jejune","meaning":"adj. 乏味无聊的","synonyms":"vapid, tedious","related":""},{"seq":"11008","word":"tedious","meaning":"adj. 乏味无聊的","synonyms":"dreary, monotonous, tiresome","related":""},{"seq":"11009","word":"monotonous","meaning":"adj. 单调无聊的","synonyms":"tedious, humdrum","related":""},{"seq":"11010","word":"humdrum","meaning":"adj. 单调无聊的","synonyms":"dull, monotonous","related":""},{"seq":"11011","word":"pedestrian","meaning":"adj. 乏味无聊的","synonyms":"mundane, prosaic","related":""},{"seq":"11012","word":"mundane","meaning":"adj. 平凡乏味的","synonyms":"prosaic, pedestrain, banal","related":""},{"seq":"11013","word":"prosaic","meaning":"adj. 乏味无聊的","synonyms":"mundane, pedestrain, banal","related":""},{"seq":"11014","word":"ponderous","meaning":"adj. 乏味无聊的, 沉闷的","synonyms":"tedious","related":""},{"seq":"11015","word":"cumbersome","meaning":"adj. 笨重的","synonyms":"unwieldy","related":"encumber 阻碍"},{"seq":"11016","word":"unwieldy","meaning":"adj. 笨重的","synonyms":"cumbersome","related":"wield 挥舞"},{"seq":"11017","word":"ungainlly","meaning":"adj. 笨重的, 笨拙的","synonyms":"awkward, clumsy","related":""},{"seq":"11018","word":"clumsy","meaning":"adj. 笨拙的","synonyms":"maladroit","related":""},{"seq":"11019","word":"awkward","meaning":"adj. 笨拙的, 不合适的","synonyms":"ungainly, unwieldy","related":""},{"seq":"11020","word":"agile","meaning":"adj. 敏捷的","synonyms":"nimble","related":""},{"seq":"11021","word":"adroit","meaning":"adj. 灵巧的","synonyms":"skillful, deft","related":""},{"seq":"11022","word":"deft","meaning":"adj. 灵活的","synonyms":"","related":""},{"seq":"11023","word":"shrewd","meaning":"adj. 精明的","synonyms":"canny","related":""},{"seq":"11024","word":"canny","meaning":"adj. 精明的","synonyms":"shrewd","related":"uncanny 离奇的"},{"seq":"11025","word":"trivial","meaning":"adj. 不重要的","synonyms":"trifling, inconsequential, imperceptible","related":""},{"seq":"11026","word":"trifling","meaning":"adj. 不重要的","synonyms":"trivial, minimal","related":"trifle 小事"},{"seq":"11027","word":"negligible","meaning":"adj. 不重要的","synonyms":"inconsequential, trifling","related":""},{"seq":"11028","word":"marginal","meaning":"adj. 不重要的, 边缘的","synonyms":"peripheral, fringe","related":"margin 边缘"},{"seq":"11029","word":"peripheral","meaning":"adj. 不重要的, 边缘的","synonyms":"marginal","related":"peripheral vision 余光"},{"seq":"11030","word":"tangent","meaning":"adj. 跑题的, 不相关的","synonyms":"digression","related":""},{"seq":"11031","word":"extraneous","meaning":"adj. 不相关的","synonyms":"irrelevant, peripheral","related":""},{"seq":"11032","word":"immaterial","meaning":"adj. 不相关的, 不重要的","synonyms":"irrelevant, inconsequential","related":""},{"seq":"11033","word":"germane","meaning":"adj. 相关的","synonyms":"relevant, apposite, apropos","related":"germinate 发芽"},{"seq":"11034","word":"pertian","meaning":"v. 与…相关","synonyms":"","related":"pertinent"},{"seq":"11035","word":"fecund","meaning":"adj. 多产的","synonyms":"fertile","related":""},{"seq":"11036","word":"fertile","meaning":"adj. 多产的","synonyms":"fecund","related":""},{"seq":"11037","word":"convoluted","meaning":"adj. 复杂的","synonyms":"intricate, complex, tortuous","related":""},{"seq":"11038","word":"knotty","meaning":"adj. 复杂的","synonyms":"complicated","related":""},{"seq":"11039","word":"intricate","meaning":"adj. 复杂的","synonyms":"complex, convoluted","related":""},{"seq":"11040","word":"elaborate","meaning":"adj. 复杂的, 精密的","synonyms":"sophisticated","related":""},{"seq":"11041","word":"byzantine","meaning":"adj. 复杂的","synonyms":"complicated","related":"拜占庭"},{"seq":"11042","word":"baroque","meaning":"adj. 复杂的, 奢华的","synonyms":"intricate","related":"巴洛克"},{"seq":"11043","word":"forthright","meaning":"adj. 简单直接的","synonyms":"straightforward, candid","related":""},{"seq":"11044","word":"blunt","meaning":"adj. 直率的, 钝的","synonyms":"outspoken","related":""},{"seq":"11045","word":"plainspoken","meaning":"adj. 直率的, 直言不讳的","synonyms":"candid, forthright","related":""},{"seq":"12001","word":"soporific","meaning":"adj. 催眠的, 令人昏昏欲睡的","synonyms":"somnolent","related":"sopor 沉睡, sporadic 断断续续的"},{"seq":"12002","word":"somnolent","meaning":"adj. 催眠的, 令人昏昏欲睡的","synonyms":"soporific, lethargic","related":"insomnia 失眠"},{"seq":"12003","word":"lethargic","meaning":"adj. 无精打采的, 缺少活力的","synonyms":"somnolent","related":""},{"seq":"12004","word":"cachet","meaning":"n. 声望","synonyms":"prestige","related":""},{"seq":"12005","word":"genuine","meaning":"adj. 真正的","synonyms":"authentic, bona fide","related":""},{"seq":"12006","word":"feigned","meaning":"adj. 假的","synonyms":"false, counterfeit","related":"feign 佯攻"},{"seq":"12007","word":"spurious","meaning":"adj. 假的","synonyms":"specious, artificial, bogus, fabricated","related":""},{"seq":"12008","word":"specious","meaning":"adj. 假的","synonyms":"spurious, unfounded, deceptive","related":""},{"seq":"12009","word":"forge","meaning":"v. 形成, 锻造\nv. 造假","synonyms":"falsify, invent, counterfeit","related":""},{"seq":"12010","word":"presage","meaning":"v. 预示","synonyms":"portend, herald","related":""},{"seq":"12011","word":"portend","meaning":"v. 预示","synonyms":"presage, predict","related":""},{"seq":"12012","word":"prefigure","meaning":"v. 预示","synonyms":"anticipate","related":""},{"seq":"12013","word":"prescient","meaning":"adj. 预知的","synonyms":"prophetic, foresighted","related":""},{"seq":"12014","word":"prophetic","meaning":"adj. 预言的","synonyms":"prescient","related":""},{"seq":"12015","word":"adulate","meaning":"v. 拍马屁","synonyms":"fawn, flatter, toady","related":""},{"seq":"12016","word":"flatter","meaning":"v. 拍马屁","synonyms":"fawn, adulate","related":""},{"seq":"12017","word":"sycophantic","meaning":"adj. 谄媚的","synonyms":"obsequious, fawning","related":""},{"seq":"12018","word":"obsequious","meaning":"adj. 谄媚的","synonyms":"sycophantic, ingratiating","related":""},{"seq":"12019","word":"precarious","meaning":"adj. 危险的\nadj. 不确定的","synonyms":"dangerous, perilous, hazardous","related":""},{"seq":"12020","word":"perilous","meaning":"adj. 危险的","synonyms":"precarious","related":""},{"seq":"12021","word":"haphazard","meaning":"adj. 随机的, 任意的","synonyms":"random, arbitrary, hit-or-miss","related":""},{"seq":"12022","word":"arbitrary","meaning":"adj. 任意的, 随机的","synonyms":"haphazard, random, capricious","related":""},{"seq":"12023","word":"overbearing","meaning":"adj. 傲慢的","synonyms":"imperious","related":""},{"seq":"12024","word":"hubris","meaning":"adj. 傲慢的","synonyms":"arrogance","related":"hub 中心"},{"seq":"12025","word":"paltry","meaning":"adj. 微不足道的","synonyms":"meager","related":""},{"seq":"12026","word":"meager","meaning":"adj. 微不足道的, 不足的","synonyms":"paltry, insufficient","related":""},{"seq":"12027","word":"scant","meaning":"adj. 不足的, 缺乏的","synonyms":"limited, exiguous","related":""},{"seq":"12028","word":"exiguous","meaning":"adj. 稀少的","synonyms":"scant, paltry, inadequate","related":""},{"seq":"12029","word":"ample","meaning":"adj. 充足的","synonyms":"plentiful, copious, abundant","related":""},{"seq":"12030","word":"abundant","meaning":"adj. 大量的","synonyms":"copious, ample","related":""},{"seq":"12031","word":"profusion","meaning":"adj. 大量的","synonyms":"abundance, lavishness","related":""},{"seq":"12032","word":"myriad","meaning":"n. 大量, 无数","synonyms":"multitudinous, numerous","related":""},{"seq":"12033","word":"redundant","meaning":"adj. 多余的","synonyms":"superfluous, unnecessary","related":""},{"seq":"12034","word":"superfluous","meaning":"adj. 多余的","synonyms":"redundant, expendible","related":""},{"seq":"12035","word":"affluent","meaning":"adj. 富裕的","synonyms":"wealthy, opulent","related":""},{"seq":"12036","word":"facile","meaning":"adj. 肤浅的","synonyms":"shallow, superficial","related":""},{"seq":"12037","word":"antithetical","meaning":"adj. 对立的","synonyms":"oppositional, paradoxical","related":"hypothetical 假设的"},{"seq":"12038","word":"contradict","meaning":"v. 反驳, 对立","synonyms":"gainsay, belie, refute, dichotomous","related":""},{"seq":"12039","word":"irenic","meaning":"adj. 促进和平的","synonyms":"dovish, pacific","related":"ironic 讽刺的"},{"seq":"13001","word":"inimical","meaning":"adj. 敌对的","synonyms":"antagonistic, adverse","related":"enemy"},{"seq":"13002","word":"hostile","meaning":"adj. 敌对的","synonyms":"inhospitable","related":""},{"seq":"13003","word":"antagonistic","meaning":"adj. 敌对的","synonyms":"inimical, adversarial, opposed","related":"agony 痛苦"},{"seq":"13004","word":"adversarial","meaning":"adj. 敌对的","synonyms":"antagonistic, adverse","related":"adversary 敌人"},{"seq":"13005","word":"adverse","meaning":"adj. 不利的, 有害的","synonyms":"unfavorable, inimical","related":""},{"seq":"13006","word":"subversive","meaning":"adj. 颠覆性的","synonyms":"seditious, iconoclastic","related":""},{"seq":"13007","word":"conversant","meaning":"adj. 熟悉的","synonyms":"familiar","related":""},{"seq":"13008","word":"versatile","meaning":"adj. 多才多艺的","synonyms":"protean","related":"volatile 易变的"},{"seq":"13009","word":"protean","meaning":"adj. 多才多艺的\nadj. 善变的","synonyms":"versatile","related":"Proteus 古希腊掌管变化的神"},{"seq":"13010","word":"fickle","meaning":"adj. 善变的","synonyms":"capricious, unpredictable","related":""},{"seq":"13011","word":"whimsical","meaning":"adj. 善变的","synonyms":"capricious, inconstant","related":"whim 突发奇想"},{"seq":"13012","word":"capricious","meaning":"adj. 善变的","synonyms":"whimsical, arbitrary, flighty, fickle, volatile, unpredictable, impulsive, inconstant","related":""},{"seq":"13013","word":"mercurial","meaning":"adj. 善变的","synonyms":"erratic, volatile","related":""},{"seq":"13014","word":"mutable","meaning":"adj. 善变的","synonyms":"fluid, alterable","related":""},{"seq":"13015","word":"volatile","meaning":"adj. 善变的","synonyms":"capricious","related":""},{"seq":"13016","word":"imperturbable","meaning":"adj. 情绪稳定的","synonyms":"unflappable, unruffled, composed","related":"perturb 打扰"},{"seq":"13017","word":"turbid","meaning":"adj. 浑浊的","synonyms":"muddy","related":"turgid 难懂的"},{"seq":"13018","word":"turbulent","meaning":"adj. 混乱的","synonyms":"tumultuous, chaotic","related":""},{"seq":"13019","word":"banish","meaning":"v. 驱逐","synonyms":"expel, oust","related":""},{"seq":"13020","word":"oust","meaning":"v. 驱逐","synonyms":"expel, banish","related":""},{"seq":"13021","word":"preachy","meaning":"adj. 爱说教的","synonyms":"didactic, moralizing","related":""},{"seq":"13022","word":"didactic","meaning":"adj. 爱说教的","synonyms":"preachy, moralizing","related":""},{"seq":"13023","word":"hamper","meaning":"v. 阻碍","synonyms":"hinder, impede, encumber","related":"hamper n. 篮子"},{"seq":"13024","word":"hinder","meaning":"v. 阻碍","synonyms":"stymie, impede, hamper","related":"hindrance"},{"seq":"13025","word":"handicap","meaning":"v. 阻碍","synonyms":"hamper, hinder, impede","related":"残障"},{"seq":"13026","word":"impede","meaning":"v. 阻碍","synonyms":"hinder, hamper","related":"impediment"},{"seq":"13027","word":"encumber","meaning":"v. 阻碍","synonyms":"hamper","related":"cumbersome 笨重的"},{"seq":"13028","word":"forestall","meaning":"v. 阻止, 预防","synonyms":"prevent, preclude, avert","related":""},{"seq":"13029","word":"deter","meaning":"v. 阻止","synonyms":"constrain, preclude","related":"deterrent 威慑力"},{"seq":"13030","word":"defer","meaning":"v. 推迟\nv. 延期","synonyms":"postpone, put off\nyield to, submit to","related":"deference"},{"seq":"13031","word":"deferential","meaning":"adj. 恭敬的","synonyms":"respectful","related":""},{"seq":"13032","word":"disposition","meaning":"n. 偏好","synonyms":"proclivity, predisposition","related":""},{"seq":"13033","word":"orientation","meaning":"n. 偏好, 取向","synonyms":"bias","related":""},{"seq":"13034","word":"predilection","meaning":"n. 倾向, 偏好","synonyms":"proclivity, partiality","related":""},{"seq":"13035","word":"penchant","meaning":"n. 偏好","synonyms":"inclination, preference","related":""},{"seq":"13036","word":"proclivity","meaning":"n. 偏好","synonyms":"predilection, affinity, disposition","related":""},{"seq":"13037","word":"substantiate","meaning":"v. 证实","synonyms":"authenticate, verify, corroborate","related":""},{"seq":"13038","word":"authenticate","meaning":"v. 证实","synonyms":"substantiate","related":""},{"seq":"13039","word":"corroborate","meaning":"v. 证实","synonyms":"confirm, document, verify","related":"rob - robust"},{"seq":"13040","word":"debunk","meaning":"v.证伪, 拆穿","synonyms":"refute, disprove, discredit","related":""},{"seq":"13041","word":"itinerant","meaning":"adj. 居无定所的, 巡回的","synonyms":"peripatetic, nomadic, tear-around","related":""},{"seq":"13042","word":"peripatetic","meaning":"adj. 居无定所的, 巡回的","synonyms":"itinerant","related":""},{"seq":"13043","word":"probity","meaning":"n. 正直","synonyms":"integraty,  rectitude","related":""},{"seq":"13044","word":"scrupulous","meaning":"adj. 正直的\nadj. 认真仔细的","synonyms":"honest\nmeticulous, conscientious, punctilious","related":""},{"seq":"13045","word":"meticulous","meaning":"adj. 仔细的","synonyms":"exact, thorough, painstaking, scrupulous, fastidious, punctilious","related":""},{"seq":"13046","word":"punctilious","meaning":"adj. 小心谨慎的","synonyms":"meticulous, scrupulous","related":""},{"seq":"13047","word":"compunction","meaning":"n. 愧疚, 后悔","synonyms":"scruple, misgiving","related":""},{"seq":"14001","word":"ambivalent","meaning":"adj. 纠结的, 拧巴的","synonyms":"conflicted","related":""},{"seq":"14002","word":"ambiguous","meaning":"adj. 不确定的","synonyms":"equivocal, indefinite","related":""},{"seq":"14003","word":"equivocal","meaning":"adj. 不确定的","synonyms":"ambiguous","related":""},{"seq":"14004","word":"provocative","meaning":"adj. 刺激的, 引起一些反应的","synonyms":"stimulating, inflammatory","related":""},{"seq":"14005","word":"advocate","meaning":"v. 支持","synonyms":"endorse, champion, espouse","related":""},{"seq":"14006","word":"endorse","meaning":"v. 公开支持, 做背书","synonyms":"support, authorize, underwrite","related":""},{"seq":"14007","word":"espouse","meaning":"v. 支持","synonyms":"embrace, adopt","related":""},{"seq":"14008","word":"thwart","meaning":"v. 阻挠","synonyms":"frustrate","related":""},{"seq":"14009","word":"peculiar","meaning":"adj. 奇怪的","synonyms":"odd, idiosyncratic","related":""},{"seq":"14010","word":"quirky","meaning":"adj. 奇怪的","synonyms":"odd, unconventional","related":""},{"seq":"14011","word":"eccentric","meaning":"adj. 奇怪的","synonyms":"odd, unconventional","related":""},{"seq":"14012","word":"erratic","meaning":"adj. 奇怪的, 难以预料的","synonyms":"unpredictable, inconsistent","related":""},{"seq":"14013","word":"atypical","meaning":"adj. 异常的, 非典型的","synonyms":"abnormal, anomalous, exeptional","related":""},{"seq":"14014","word":"anomalous","meaning":"adj. 异常的","synonyms":"abnormal, aberrant, unusual","related":""},{"seq":"14015","word":"forsake","meaning":"v. 放弃","synonyms":"renounce, abandon","related":""},{"seq":"14016","word":"forgo","meaning":"v. 放弃","synonyms":"forsake, relinquish","related":""},{"seq":"14017","word":"relinquish","meaning":"v. 放弃","synonyms":"abandon, cede","related":""},{"seq":"14018","word":"jettison","meaning":"v. 丢弃, 抛弃","synonyms":"abandon, forgo","related":""},{"seq":"14019","word":"recant","meaning":"v. 撤回, 撤销（言论）","synonyms":"renounce, repudiate","related":""},{"seq":"14020","word":"gripping","meaning":"adj. 吸引人的","synonyms":"arresting, compelling, entrancing","related":""},{"seq":"14021","word":"absorbing","meaning":"adj. 吸引人的","synonyms":"enchanting, engrossing, intriguing, gripping","related":""},{"seq":"14022","word":"imitate","meaning":"v. 模仿","synonyms":"mimic, emulate","related":""},{"seq":"14023","word":"emulate","meaning":"v. 模仿","synonyms":"imitate","related":"师夷长技以制夷"},{"seq":"14024","word":"feeble","meaning":"adj. 虚弱的, 无力的","synonyms":"weak, tenuous","related":""},{"seq":"14025","word":"frail","meaning":"adj. 虚弱的, 易碎的","synonyms":"feeble, fragile, brittle","related":""},{"seq":"14026","word":"palpable","meaning":"adj. 可感知的","synonyms":"tangible, salient","related":""},{"seq":"14027","word":"tangible","meaning":"adj. 可感知的","synonyms":"palpable, perceptible","related":""},{"seq":"14028","word":"appreciable","meaning":"adj. 可感知的","synonyms":"tangible, salient","related":""},{"seq":"14029","word":"imperceptible","meaning":"adj. 难以感知的","synonyms":"gradual, indiscernible","related":""},{"seq":"14030","word":"salient","meaning":"adj. 显著的","synonyms":"prominent, conspicuous, evident, palpable","related":""},{"seq":"14031","word":"patent","meaning":"adj. 明显的","synonyms":"manifest, obvious","related":""},{"seq":"14032","word":"conspicuous","meaning":"adj. 明显的","synonyms":"salient, prominent, obtrusive, blatant","related":""},{"seq":"14033","word":"flagrant","meaning":"adj. 明目张胆的","synonyms":"blatant","related":""},{"seq":"14034","word":"stratified","meaning":"adj. 分层级的","synonyms":"hierarchical","related":""},{"seq":"14035","word":"intrinsic","meaning":"adj. 内在的, 固有的","synonyms":"inherent, inextricable","related":"extrinsic"},{"seq":"14036","word":"adhere","meaning":"adj. 遵守","synonyms":"comply, conform","related":""},{"seq":"14037","word":"coherent","meaning":"adj. 连贯的","synonyms":"orderly","related":""},{"seq":"14038","word":"irk","meaning":"v. 激怒","synonyms":"irritate, vex","related":"irksome 令人生气的"},{"seq":"14039","word":"vex","meaning":"v. 激怒","synonyms":"irk, irritate, plague","related":""},{"seq":"14040","word":"exasperate","meaning":"v. 激怒","synonyms":"annoy, infuriate, irk","related":""},{"seq":"14041","word":"conciliatory","meaning":"adj. 安抚的, 愿意和解的","synonyms":"placatory, mollifying","related":"reconcile 调解 调和 重归于好"},{"seq":"14042","word":"placatory","meaning":"adj. 安抚的","synonyms":"conciliatory","related":""},{"seq":"14043","word":"implacable","meaning":"adj. 无法平息的, 无法缓和的","synonyms":"unyielding, relentless, inexorable","related":""},{"seq":"14044","word":"complacent","meaning":"adj. 自我感觉良好","synonyms":"smug","related":""},{"seq":"15001","word":"sanguine","meaning":"adj. 乐观的, 自信的","synonyms":"rosy, upbeat","related":""},{"seq":"15002","word":"upbeat","meaning":"adj. 乐观的, 积极的","synonyms":"sanguine, gratified","related":""},{"seq":"15003","word":"bleak","meaning":"adj. 不乐观的","synonyms":"gloomy","related":"前途一片黑暗"},{"seq":"15004","word":"phlegmatic","meaning":"adj. 冷漠的","synonyms":"torpid, apathetic","related":"phlegm 粘液 - 黏液质"},{"seq":"15005","word":"apathetic","meaning":"adj. 冷漠的","synonyms":"indifferent, uninterested","related":""},{"seq":"15006","word":"nonchalant","meaning":"adj. 冷漠的","synonyms":"indifferent, insouciant","related":""},{"seq":"15007","word":"zealous","meaning":"adj. 狂热的","synonyms":"fervent, passionate","related":"zenith 最高点"},{"seq":"15008","word":"fervent","meaning":"adj. 热情的, 热烈的","synonyms":"zealous, ardent","related":""},{"seq":"15009","word":"effusive","meaning":"adj. 热情洋溢的","synonyms":"fulsome, exuberant","related":""},{"seq":"15010","word":"exuberant","meaning":"adj. 热情洋溢的","synonyms":"effusive, ebullient","related":""},{"seq":"15011","word":"choleric","meaning":"adj. 易怒的","synonyms":"irascible, cantankerous","related":"choler 胆汁 - 胆汁质"},{"seq":"15012","word":"irascible","meaning":"adj. 易怒的","synonyms":"choleric, fractious","related":"irk"},{"seq":"15013","word":"fiery","meaning":"adj. 易怒的","synonyms":"impassioned, vehement","related":""},{"seq":"15014","word":"fractious","meaning":"adj. 易怒的","synonyms":"irascible, restive, unruly","related":""},{"seq":"15015","word":"affable","meaning":"adj. 和蔼的","synonyms":"easygoing, genial, cordial","related":""},{"seq":"15016","word":"melancholy","meaning":"adj. 忧伤的","synonyms":"pensive, gloomy","related":""},{"seq":"15017","word":"agreeable","meaning":"adj. 令人愉悦的","synonyms":"amicable, delightful","related":""},{"seq":"15018","word":"propitious","meaning":"adj. 吉利的","synonyms":"auspicious, favorable","related":""},{"seq":"15019","word":"auspicious","meaning":"adj. 吉利的","synonyms":"favorable, propitious","related":""},{"seq":"15020","word":"salutary","meaning":"adj. 有益健康的","synonyms":"beneficial, wholesome","related":""},{"seq":"15021","word":"salubrious","meaning":"adj. 有益健康的","synonyms":"salutary, wholesome","related":""},{"seq":"15022","word":"tonic","meaning":"adj. 滋补的","synonyms":"restorative","related":"gin tonic 金汤力"},{"seq":"15023","word":"restorative","meaning":"adj. 恢复健康的","synonyms":"tonic","related":""},{"seq":"15024","word":"laborious","meaning":"adj. 费力的","synonyms":"arduous, onerous","related":""},{"seq":"15025","word":"taxing","meaning":"adj. 费力的","synonyms":"arduous, onerous","related":""},{"seq":"15026","word":"burdensome","meaning":"adj. 费力的","synonyms":"onerous","related":""},{"seq":"15027","word":"onerous","meaning":"adj. 费力的","synonyms":"burdensome, arduous, exacting, taxing","related":""},{"seq":"15028","word":"demanding","meaning":"adj. 费力的, 苛刻的, 要求高的","synonyms":"challenging, exacting","related":""},{"seq":"15029","word":"exacting","meaning":"adj. 要求严格的\nadj. 费力的, 艰巨的","synonyms":"meticulous, conscientious, painstaking","related":""},{"seq":"15030","word":"polemical","meaning":"adj. 引发争议的","synonyms":"controversial, argumentative","related":""},{"seq":"15031","word":"controversial","meaning":"adj. 引发争议的","synonyms":"polemical, polarizing, divisive, contentious","related":""},{"seq":"15032","word":"contentious","meaning":"adj. 引发争议的","synonyms":"controversial, combative","related":""},{"seq":"15033","word":"divisive","meaning":"adj. 引起分裂的","synonyms":"controversial","related":""},{"seq":"15034","word":"incontrovertible","meaning":"adj. 无可置疑的","synonyms":"indisputable, indubitable","related":""},{"seq":"15035","word":"assuage","meaning":"v. 减轻, 缓和","synonyms":"alleviate, palliate","related":""},{"seq":"15036","word":"alleviate","meaning":"v. 减轻, 缓和","synonyms":"mitigate, assuage","related":""},{"seq":"15037","word":"mollify","meaning":"v. 减轻, 缓和","synonyms":"placate, conciliate","related":""},{"seq":"15038","word":"mitigate","meaning":"v. 减轻, 缓和","synonyms":"alleviate, abate, temmper, extenuate, relieve","related":"unmitigated 彻底的"},{"seq":"15039","word":"allay","meaning":"v. 减轻, 缓和","synonyms":"palliate","related":""},{"seq":"15040","word":"abate","meaning":"v. 减轻, 缓和","synonyms":"dissipate, mitigate","related":""},{"seq":"15041","word":"palliate","meaning":"v. 减轻, 缓和","synonyms":"allay, assuage, wane","related":"pallium 披风"},{"seq":"15042","word":"soothe","meaning":"v. 减轻, 缓和","synonyms":"calm, deflate","related":""},{"seq":"15043","word":"attenuate","meaning":"v. 减轻, 减弱","synonyms":"mute, diminish","related":""},{"seq":"15044","word":"tenuous","meaning":"adj. 脆弱的, 薄弱的","synonyms":"exiguous, loose","related":""},{"seq":"15045","word":"permeable","meaning":"adj. 可渗透的, 可穿过的","synonyms":"porous, pervious","related":""},{"seq":"15046","word":"porous","meaning":"adj. 可渗透的, 可穿过的","synonyms":"permeable","related":"pore 气孔"},{"seq":"16001","word":"duplicity","meaning":"n. 诈骗","synonyms":"deceit, fraud, dissemblance","related":""},{"seq":"16002","word":"replicate","meaning":"v. 复现, 重复","synonyms":"reproduce, duplicate","related":""},{"seq":"16003","word":"flourish","meaning":"v. 繁荣, 兴旺","synonyms":"thrive, prosper","related":""},{"seq":"16004","word":"daunting","meaning":"adj. 令人畏惧的","synonyms":"formidable, intimidating","related":""},{"seq":"16005","word":"formidable","meaning":"adj. 令人畏惧的","synonyms":"daunting","related":""},{"seq":"16006","word":"nebulous","meaning":"adj. 模糊不清的","synonyms":"vague, amorphous","related":""},{"seq":"16007","word":"vague","meaning":"adj. 模糊不清的","synonyms":"nebulous","related":""},{"seq":"16008","word":"vacant","meaning":"adj. 空的, 空虚的","synonyms":"empty, unoccupied","related":""},{"seq":"16009","word":"vacuous","meaning":"adj. 空洞的","synonyms":"inane","related":""},{"seq":"16010","word":"interloper","meaning":"n. 闯入者","synonyms":"intruder, invasive","related":""},{"seq":"16011","word":"condemn","meaning":"v. 谴责","synonyms":"decry, denounce, scold","related":""},{"seq":"16012","word":"castigate","meaning":"v. 谴责","synonyms":"censure, rebuke, chastise","related":""},{"seq":"16013","word":"scold","meaning":"v. 谴责","synonyms":"condemn","related":""},{"seq":"16014","word":"lambast","meaning":"v. 谴责","synonyms":"denounce, censure, excoriate","related":""},{"seq":"16015","word":"rant","meaning":"v. 谴责","synonyms":"diatribe, harangue","related":""},{"seq":"16016","word":"diatribe","meaning":"v. 谴责, 抨击","synonyms":"rant","related":""},{"seq":"16017","word":"invective","meaning":"n. 辱骂, 抨击","synonyms":"abuse, vituperation","related":""},{"seq":"16018","word":"harangue","meaning":"n. v. 长篇抨击","synonyms":"rant","related":""},{"seq":"16019","word":"excoriate","meaning":"v. 强烈指责","synonyms":"lambast","related":""},{"seq":"16020","word":"denounce","meaning":"v. 公开谴责","synonyms":"lambast, decry","related":""},{"seq":"16021","word":"decry","meaning":"v. 公开谴责","synonyms":"condemn, reprehend","related":""},{"seq":"16022","word":"censure","meaning":"v. 公开谴责","synonyms":"blame, lambast","related":"censor 审核/删除"},{"seq":"16023","word":"hail","meaning":"v. 赞美, 称赞","synonyms":"acclaim","related":""},{"seq":"16024","word":"extol","meaning":"v. 称赞","synonyms":"applaud, acclaim","related":""},{"seq":"16025","word":"exalt","meaning":"v. 称赞","synonyms":"valorize","related":""},{"seq":"16026","word":"acclaim","meaning":"n. v. 称赞","synonyms":"hail, extol, laud","related":""},{"seq":"16027","word":"accolade","meaning":"n. 称赞","synonyms":"honor, acclaim","related":""},{"seq":"16028","word":"encomium","meaning":"n. 称赞","synonyms":"tribute, eulogy, panegyric","related":""},{"seq":"16029","word":"tribute","meaning":"n. 称赞","synonyms":"condemndation, encomium","related":"贡品"},{"seq":"16030","word":"unremarkable","meaning":"adj. 普通的","synonyms":"unexceptional, commonplace, unprepossesing","related":""},{"seq":"16031","word":"orthodox","meaning":"adj. 正统的","synonyms":"conventional, mainstream","related":""},{"seq":"16032","word":"heterodox","meaning":"adj. 异端的","synonyms":"iconoclastic","related":""},{"seq":"16033","word":"pretentious","meaning":"adj. 爱装逼的","synonyms":"showy, ostentatious","related":""},{"seq":"16034","word":"unostentatious","meaning":"adj. 低调的","synonyms":"modest, unpertentious","related":""},{"seq":"16035","word":"untenable","meaning":"adj. 没有依据的, 站不住脚的","synonyms":"baseless, flawed, indefensible, unsustainable","related":""},{"seq":"16036","word":"unwarranted","meaning":"adj. 没有根据的, 不应该的","synonyms":"groundless, gratuitous","related":""},{"seq":"16037","word":"unfounded","meaning":"adj. 没有根据的","synonyms":"unjustified, specious","related":""},{"seq":"16038","word":"unblemished","meaning":"adj. 未被破坏的","synonyms":"pristine, spotless, flawless","related":"blemish 瑕疵"},{"seq":"16039","word":"pristine","meaning":"adj. 原生态的","synonyms":"unblemished, undisturbed, virgin","related":""},{"seq":"16040","word":"unprecedented","meaning":"adj. 前所未有的","synonyms":"novel, unique, unparalleled","related":""},{"seq":"16041","word":"platitude","meaning":"n. 陈词滥调","synonyms":"cliché, bromide","related":""},{"seq":"17001","word":"misgiving","meaning":"n. 不安","synonyms":"trepidation","related":""},{"seq":"17002","word":"trepidation","meaning":"n. 担心, 不安","synonyms":"apprehension, misgiving, unease","related":"intrepid 大胆的"},{"seq":"17003","word":"reckless","meaning":"adj. 鲁莽的, 草率的","synonyms":"rash, madcap","related":"reckon + less"},{"seq":"17004","word":"impetuous","meaning":"adj. 鲁莽的, 草率的","synonyms":"reckless, rash, impulsive, headlong","related":"impetus 推力"},{"seq":"17005","word":"madcap","meaning":"adj. 鲁莽的","synonyms":"reckless， audacious","related":""},{"seq":"17006","word":"impulsive","meaning":"adj. 鲁莽的, 冲动的","synonyms":"capricious, hasty, rash, impetuous","related":""},{"seq":"17007","word":"audacious","meaning":"adj. 鲁莽的","synonyms":"daring, intrepid, brazen","related":""},{"seq":"17008","word":"curb","meaning":"v. 限制","synonyms":"restrain, check, bridle","related":"马嚼子"},{"seq":"17009","word":"bridle","meaning":"v. 限制","synonyms":"curb, rein, check","related":"马具, 辔头"},{"seq":"17010","word":"rein","meaning":"v. 限制","synonyms":"curb, bridle, manacle","related":"缰绳"},{"seq":"17011","word":"spur","meaning":"v. 激励","synonyms":"stimulate, catalyze, foster","related":"马刺"},{"seq":"17012","word":"spurn","meaning":"v. 拒绝","synonyms":"rebuff, flout","related":""},{"seq":"17013","word":"rebuff","meaning":"v. 拒绝","synonyms":"spurn, reject","related":"buff - 擦亮"},{"seq":"17014","word":"repudiate","meaning":"v. 拒绝, 否认","synonyms":"recant, reject","related":""},{"seq":"17015","word":"anonymous","meaning":"adj. 匿名的","synonyms":"obscure","related":""},{"seq":"17016","word":"synonymous","meaning":"adj. 同义的","synonyms":"equivalent, tantamount, comparable","related":""},{"seq":"17017","word":"eradicate","meaning":"v. 消灭, 根除","synonyms":"eliminate","related":""},{"seq":"17018","word":"hidebound","meaning":"adj. 保守不变的","synonyms":"conservative, illiberal","related":""},{"seq":"17019","word":"comparable","meaning":"adj. 相似的, 类似的","synonyms":"analogous","related":""},{"seq":"17020","word":"analogous","meaning":"adj. 相似的, 类似的","synonyms":"comparable","related":"analogy 类比"},{"seq":"17021","word":"aggravate","meaning":"v. 加剧, 恶化","synonyms":"exacerbate","related":"aggregate 聚集"},{"seq":"17022","word":"exacerbate","meaning":"v. 加剧, 恶化","synonyms":"aggravate, worsen, compound","related":""},{"seq":"17023","word":"thrift","meaning":"n. 节俭","synonyms":"frugality, economy","related":""},{"seq":"17024","word":"frugal","meaning":"adj. 节俭的","synonyms":"sparing, thrifty, parsimonious","related":""},{"seq":"17025","word":"stingy","meaning":"adj. 小气的","synonyms":"parsimonious, illiberal, tightfisted","related":"sting 刺痛"},{"seq":"17026","word":"parsimonious","meaning":"adj. 小气的","synonyms":"stingy, miserly, frugal","related":""},{"seq":"17027","word":"unstinting","meaning":"adj. 慷慨大方的","synonyms":"generous, profuse","related":"stint 吝啬"},{"seq":"17028","word":"liberal","meaning":"adj. 慷慨大方的","synonyms":"generous, unstinting","related":""},{"seq":"17029","word":"largesse","meaning":"n. 慷慨, 捐赠","synonyms":"generosity, munificence","related":""},{"seq":"17030","word":"extravagant","meaning":"adj. 奢侈的, 过分的","synonyms":"profligate, lavish, excessive","related":""},{"seq":"17031","word":"lavish","meaning":"adj. 奢侈的","synonyms":"sumptuous, extravagant","related":""},{"seq":"17032","word":"opulent","meaning":"adj. 奢华的","synonyms":"luxurious, lavish, affluent","related":""},{"seq":"17033","word":"ridicule","meaning":"v. 嘲笑","synonyms":"deride","related":"ridiculous"},{"seq":"17034","word":"deride","meaning":"v. 嘲笑","synonyms":"ridicule, scorn, scoff at","related":""},{"seq":"17035","word":"mockery","meaning":"n. 嘲弄性模仿","synonyms":"derision, redicule","related":""},{"seq":"17036","word":"judicious","meaning":"adj. 明智的, 敏锐的","synonyms":"discriminating, prudent, sensible","related":""},{"seq":"17037","word":"prudent","meaning":"adj. 谨慎的, 明智的","synonyms":"provident, judicious, circumspect","related":""},{"seq":"17038","word":"perceptive","meaning":"adj. 敏锐的, 有洞察力的","synonyms":"discerning, astute, insightful","related":"perceive 感知"},{"seq":"17039","word":"discerning","meaning":"adj. 敏锐的, 有洞察力的","synonyms":"perceptive, insightful","related":"discern 识别"},{"seq":"17040","word":"insightful","meaning":"adj. 敏锐的, 有洞察力的","synonyms":"sagacious, perceptive, intelligent","related":""},{"seq":"17041","word":"overshadow","meaning":"v. 超越, 使黯然失色","synonyms":"eclipse, outstrip, outshine","related":""},{"seq":"17042","word":"outstrip","meaning":"v. 超越, 超过","synonyms":"surpass, exceed","related":""},{"seq":"17043","word":"eclipse","meaning":"v. 使… 不重要\nn. 衰退","synonyms":"outdo, overshadow","related":""},{"seq":"17044","word":"blemish","meaning":"n. 瑕疵","synonyms":"defect, flaw, stain","related":""},{"seq":"17045","word":"defect","meaning":"n. 缺点, 缺陷","synonyms":"blemish","related":""},{"seq":"17046","word":"deficit","meaning":"n. 缺乏, 不足","synonyms":"shortage, shortfall, deficiency","related":""},{"seq":"18001","word":"impeccable","meaning":"adj. 完美无暇的","synonyms":"consummate, flawless","related":"peccadilo 瑕疵"},{"seq":"18002","word":"consummate","meaning":"adj. 完美的","synonyms":"impeccable","related":""},{"seq":"18003","word":"quotidian","meaning":"adj. 日常的, 司空见惯的","synonyms":"commonplace, workaday, prosaic, mundane","related":""},{"seq":"18004","word":"commonplace","meaning":"adj. 司空见惯的","synonyms":"quotidian, prosaic, mundane","related":""},{"seq":"18005","word":"inviolable","meaning":"adj. 神圣的, 不可侵犯的","synonyms":"sacrosanct","related":""},{"seq":"18006","word":"sacrosanct","meaning":"adj. 神圣的, 不可侵犯的","synonyms":"inviolable","related":"sacret 神圣的"},{"seq":"18007","word":"susceptible","meaning":"adj. 易受影响的","synonyms":"vulnerable, affected","related":""},{"seq":"18008","word":"assiduous","meaning":"adj. 勤奋认真的","synonyms":"diligent, industrious","related":""},{"seq":"18009","word":"sluggish","meaning":"adj. 迟缓的, 懒散的","synonyms":"dilatory, inert, indolent","related":"slug 蛞蝓"},{"seq":"18010","word":"inert","meaning":"adj. 惰性的, 不活跃的","synonyms":"passive, sluggish","related":"inertia 惰性"},{"seq":"18011","word":"upheaval","meaning":"n. 剧变","synonyms":"convulsion","related":""},{"seq":"18012","word":"overhaul","meaning":"v. 彻底修订","synonyms":"renew, revise","related":""},{"seq":"18013","word":"radical","meaning":"adj. 激进的","synonyms":"extreme, profound","related":""},{"seq":"18014","word":"temperate","meaning":"adj. 温和的","synonyms":"dispassionate, restraint","related":""},{"seq":"18015","word":"benevolent","meaning":"adj. 仁慈的, 慈善的","synonyms":"altruistic, kindhearted","related":""},{"seq":"18016","word":"altruistic","meaning":"adj. 利他的","synonyms":"benevolent, unselfish","related":""},{"seq":"18017","word":"lull","meaning":"v. 麻痹, 哄骗","synonyms":"respite","related":"lullaby 摇篮曲"},{"seq":"18018","word":"respite","meaning":"n. 暂缓, 喘息","synonyms":"lull, relief, break","related":""},{"seq":"18019","word":"elucidate","meaning":"v. 阐明, 解释","synonyms":"illuminate, demystify","related":""},{"seq":"18020","word":"illuminate","meaning":"v. 阐明, 解释","synonyms":"elucidate, clarify","related":""},{"seq":"18021","word":"upend","meaning":"v. 颠覆, 颠倒","synonyms":"undermine, subvert, overturn","related":""},{"seq":"18022","word":"subvert","meaning":"v. 颠覆, 破坏","synonyms":"undermine, upend","related":""},{"seq":"18023","word":"exculpate","meaning":"v. 开脱, 免责","synonyms":"absolve, exonerate, acquit","related":""},{"seq":"18024","word":"exonerate","meaning":"v. 开脱, 免责","synonyms":"exculpate, absolve","related":""},{"seq":"18025","word":"unyielding","meaning":"adj. 坚定","synonyms":"implacable, steadfast, staunch","related":""},{"seq":"18026","word":"staunch","meaning":"adj. 坚定","synonyms":"unyielding, steadfast","related":""},{"seq":"18027","word":"strenuous","meaning":"adj. 艰苦的, 费力的","synonyms":"arduous, onerous","related":""},{"seq":"18028","word":"arduous","meaning":"adj. 艰苦的, 费力的","synonyms":"onerous, laborious, taxing","related":""},{"seq":"18029","word":"dubious","meaning":"adj. 不靠谱的, 令人存疑的","synonyms":"skeptical, questionable, unwarranted","related":""},{"seq":"18030","word":"dour","meaning":"adj. 严厉的, 阴沉的","synonyms":"gloomy, harsh, severe","related":""},{"seq":"18031","word":"acute","meaning":"adj. 严重的\nadj. 敏锐的","synonyms":"","related":""},{"seq":"18032","word":"proliferate","meaning":"v. 快速增长","synonyms":"abound, burgeon","related":""},{"seq":"18033","word":"abound","meaning":"v. 充满, 大量出现","synonyms":"proliferate, burgeon","related":""},{"seq":"18034","word":"burgeon","meaning":"v. 快速增长","synonyms":"abound, proliferate, thrive","related":""},{"seq":"18035","word":"venerate","meaning":"v. 尊敬, 崇敬","synonyms":"revere, deify","related":""},{"seq":"18036","word":"revere","meaning":"v. 尊敬, 崇敬","synonyms":"venerate, deify","related":""},{"seq":"18037","word":"deify","meaning":"v. 神化, 崇拜","synonyms":"venerate, revere","related":""},{"seq":"18038","word":"defy","meaning":"v. 蔑视, 违抗","synonyms":"flout, disregard","related":""},{"seq":"18039","word":"apt","meaning":"adj. 合适的","synonyms":"apposite, fitting, appropriate","related":"inapt 不恰当的"},{"seq":"18040","word":"apposite","meaning":"adj. 合适的","synonyms":"apt, fitting, germane","related":""},{"seq":"18041","word":"perpetuate","meaning":"v. 使… 永恒","synonyms":"sustain, preserve","related":""},{"seq":"19001","word":"indiscriminate","meaning":"adj. 不加区分的","synonyms":"haphazard, random","related":""},{"seq":"19002","word":"assertive","meaning":"adj. 坚定的","synonyms":"self-assured, confident","related":""},{"seq":"19003","word":"startling","meaning":"adj. 令人吃惊的","synonyms":"surprising, astonishing, stunning","related":""},{"seq":"19004","word":"wayward","meaning":"adj. 任性的, 不听话的","synonyms":"errant, unruly, willful, recalcitrant","related":""},{"seq":"19005","word":"inflammatory","meaning":"adj. 煽动性的","synonyms":"provocative, incendiary","related":""},{"seq":"19006","word":"slippery","meaning":"adj. 不确定的, 靠不住的","synonyms":"elusive, evasive, ambiguous","related":""},{"seq":"19007","word":"opportune","meaning":"adj. 时机合适的","synonyms":"timely","related":""},{"seq":"19008","word":"equable","meaning":"adj. 平静的","synonyms":"even-tempered, placid, serene","related":"equitbale 公平的"},{"seq":"19009","word":"albeit","meaning":"conj. 尽管","synonyms":"","related":"although it may be"},{"seq":"19010","word":"exactitude","meaning":"n. 精确, 严谨","synonyms":"meticulousness, scrupulousness","related":""},{"seq":"19011","word":"rationale","meaning":"n. 理由, 解释","synonyms":"justification, basis","related":""},{"seq":"19012","word":"parity","meaning":"n. 平等","synonyms":"equality","related":"disparity 差异"},{"seq":"19013","word":"hallmark","meaning":"n. 典型特征","synonyms":"characteristtic, trademark","related":""},{"seq":"19014","word":"windfall","meaning":"n. 意外之财, 收获","synonyms":"boon","related":""},{"seq":"19015","word":"testimony","meaning":"n. 证词","synonyms":"evidence, proof","related":""},{"seq":"19016","word":"defame","meaning":"v. 诽谤, 败坏名声","synonyms":"slander, malign, vilify","related":""},{"seq":"19017","word":"diminish","meaning":"v. 减少\nv. 贬低","synonyms":"curtail, attenuate\nbelittle, disparage","related":""},{"seq":"19018","word":"dwindle","meaning":"v. 逐渐减小","synonyms":"diminish, contract, wane","related":""},{"seq":"19019","word":"remedy","meaning":"v. 纠正","synonyms":"rectify, correct","related":""},{"seq":"19020","word":"animate","meaning":"v. 激活, 鼓励","synonyms":"galvanize, rouse, energize","related":""},{"seq":"19021","word":"befit","meaning":"v. 适合","synonyms":"suit","related":""},{"seq":"19022","word":"belie","meaning":"v. 质疑,  反驳\nv. 掩盖","synonyms":"contradict\nmask, veil","related":""},{"seq":"19023","word":"enamor","meaning":"v. 使迷恋","synonyms":"captivate, enthrall","related":""},{"seq":"19024","word":"dilettante","meaning":"n. 业余者, 外行","synonyms":"amateur, dabbler","related":""},{"seq":"19025","word":"languish","meaning":"v. 衰退","synonyms":"flag, fade, wither, decay","related":""},{"seq":"19026","word":"decay","meaning":"v. 衰退","synonyms":"deteriorate, decomposed","related":""},{"seq":"19027","word":"wane","meaning":"v. 衰退, 减少","synonyms":"fade, decline, ebb, dwindle","related":"wax and wane 月有阴晴圆缺"},{"seq":"19028","word":"ebb","meaning":"v. 衰退, 减少","synonyms":"wane, recede","related":"退潮"},{"seq":"19029","word":"demise","meaning":"n. 消亡, 死亡","synonyms":"death, downfall","related":""},{"seq":"19030","word":"buttress","meaning":"v. 支持, 加强","synonyms":"bolster, reinforce, shore up","related":""},{"seq":"19031","word":"bolster","meaning":"v. 支持, 加强","synonyms":"buttres, prop up, reinforce","related":""},{"seq":"19032","word":"misrepresent","meaning":"v. 歪曲, 曲解","synonyms":"distort, falsify, twist","related":""},{"seq":"19033","word":"glean","meaning":"v. 收集, 获取","synonyms":"gather, obtain, extract","related":""},{"seq":"20001","word":"umbrage","meaning":"n. 生气","synonyms":"resentment, offense","related":"umbr - shadow"},{"seq":"20002","word":"chagrin","meaning":"n. 失望, 沮丧","synonyms":"disappointment, vexation","related":""},{"seq":"20003","word":"abeyance","meaning":"n. 暂停","synonyms":"quiescense, suspension","related":""},{"seq":"20004","word":"alacrity","meaning":"n. 乐意, 欣然","synonyms":"zeal, enthusiasm, celerity","related":""},{"seq":"20005","word":"bulwark","meaning":"n. 保护, 防御","synonyms":"safeguard, defense, protection","related":""},{"seq":"20006","word":"wary","meaning":"adj. 小心的","synonyms":"cautious, circumspect, heedful, chary","related":""},{"seq":"20007","word":"contingent","meaning":"adj. dependent","synonyms":"circumstantial, unccertain, situational","related":""},{"seq":"20008","word":"proprietary","meaning":"adj. 私有的","synonyms":"private, exclusive","related":""},{"seq":"20009","word":"gregarious","meaning":"adj. 群居的, 爱社交的","synonyms":"social","related":""},{"seq":"20010","word":"lucrative","meaning":"adj. 能赚钱的","synonyms":"profitable, remunerative, rewarding","related":"lucre 钱财"},{"seq":"20011","word":"exigent","meaning":"adj. 紧急的","synonyms":"pressing, urgent, imperative","related":""},{"seq":"20012","word":"melodramatic","meaning":"adj. 戏剧化的","synonyms":"theatrical, histrionic","related":""},{"seq":"20013","word":"fortuitous","meaning":"adj. 意外的","synonyms":"serendipitous, accidental","related":""},{"seq":"20014","word":"precocious","meaning":"adj. 早熟的","synonyms":"mature","related":""},{"seq":"20015","word":"egalitarian","meaning":"adj. 主张平等的","synonyms":"democratic","related":""},{"seq":"20016","word":"venal","meaning":"adj. 贪污的, 唯利是图的","synonyms":"crooked, corrupt","related":""},{"seq":"20017","word":"innate","meaning":"adj. 天生的","synonyms":"intuitive, inherent, inborn","related":""},{"seq":"20018","word":"paradigmatic","meaning":"adj. 模范的","synonyms":"model, prototype, exemplary, archetypal","related":""},{"seq":"20019","word":"loath","meaning":"adj. 不情愿的","synonyms":"disinclined, reluctant, averse","related":"loathe v. 厌恶"},{"seq":"20020","word":"feckless","meaning":"adj. 软弱的, 无效的","synonyms":"bootless, futile","related":"feck - feit do"},{"seq":"20021","word":"futile","meaning":"adj. 无效的","synonyms":"fruitless, pointless","related":""},{"seq":"20022","word":"impotent","meaning":"adj. 无能的","synonyms":"powerless, helpless","related":""},{"seq":"20023","word":"stringent","meaning":"adj. 严格的","synonyms":"exacting, rigorous","related":""},{"seq":"20024","word":"ameliorate","meaning":"v. 改善, 改进","synonyms":"mitigate, extenuate","related":""},{"seq":"20025","word":"buoy","meaning":"v. 鼓励, 支持","synonyms":"sustain, help, encourage","related":"浮漂, buoyancy 乐观"},{"seq":"20026","word":"resonate","meaning":"v. 对某人重要","synonyms":"ring, matter","related":"回声"},{"seq":"20027","word":"construe","meaning":"v. 解释, 解读","synonyms":"interpret, understand","related":""},{"seq":"20028","word":"proscribe","meaning":"v. 禁止","synonyms":"disallow, prohibit, enjoin, ban","related":"prescribe 开处方"},{"seq":"20029","word":"improvise","meaning":"v. 即兴发挥","synonyms":"ad-lib, extemporize","related":""},{"seq":"20030","word":"acquiesce","meaning":"v. 默许, 接受","synonyms":"accede, consent","related":""},{"seq":"20031","word":"chasten","meaning":"v. 使内疚","synonyms":"humble","related":""},{"seq":"20032","word":"curtail","meaning":"v. 缩减","synonyms":"abbreviate, diminish, truncate","related":""},{"seq":"20033","word":"relish","meaning":"v. 享受","synonyms":"savor, enjoy, delighted","related":"调味品"},{"seq":"20034","word":"evince","meaning":"v. 显示, 表明","synonyms":"betray, testify to, manifest","related":""},{"seq":"20035","word":"vanish","meaning":"v. 消失","synonyms":"disappear, evaporate","related":""},{"seq":"20036","word":"sanity","meaning":"n. 神志清醒","synonyms":"rationality, soundness","related":""},{"seq":"20037","word":"sythesis","meaning":"n. 综合","synonyms":"fusion, combination","related":""},{"seq":"20038","word":"consensus","meaning":"n. 共识","synonyms":"accord, unanimity","related":""},{"seq":"20039","word":"discord","meaning":"n. 不一致","synonyms":"contention, tension, friction","related":""},{"seq":"20040","word":"courteous","meaning":"adj. 有礼貌的","synonyms":"polite, civil, gracious","related":"courtesy"},{"seq":"20041","word":"churllish","meaning":"adj. 粗鲁的","synonyms":"boorish, ungracious","related":""},{"seq":"20042","word":"austere","meaning":"adj. 朴实无华的","synonyms":"spartan, stark, plain","related":""},{"seq":"20043","word":"grandiose","meaning":"adj. 浮夸的","synonyms":"pompous, bombastic, pretentious","related":""},{"seq":"21001","word":"devious","meaning":"adj. 弯曲的\nadj. 狡诈的","synonyms":"circuitous\ncunning, underhanded","related":""},{"seq":"21002","word":"amorphous","meaning":"adj. 没有固定形状的, 无组织的","synonyms":"formless, nebulous, diffuse","related":""},{"seq":"21003","word":"articulate","meaning":"adj. v. 清晰表达","synonyms":"eloquent, fluent, enunciate","related":""},{"seq":"21004","word":"intimate","meaning":"adj. 亲密的\nv. 暗示, 间接指出","synonyms":"familiar\nhint, imply","related":""},{"seq":"21005","word":"diffuse","meaning":"adj. 松散的\nv. 扩散","synonyms":"unfocused, amorphous\nspread, scatter, disperse","related":""},{"seq":"21006","word":"utter","meaning":"v. 表达, 说出\nadj. 完全的","synonyms":"voice\nabsolute","related":""},{"seq":"21007","word":"subordinate","meaning":"v. adj. 次要的, （使）次要的","synonyms":"subject, secondary","related":""},{"seq":"21008","word":"fraught","meaning":"adj. 令人焦虑的\nadj. 充满的","synonyms":"contentious, stressful\ncharged with","related":""},{"seq":"21009","word":"antecedent","meaning":"adj. 先前的","synonyms":"prior, preceding","related":""},{"seq":"21010","word":"dissipate","meaning":"v. 驱散, 消散\nv. 浪费","synonyms":"attenuate, abate\nsquander","related":""},{"seq":"21011","word":"quash","meaning":"v. 镇压, 平息\nv. 否决","synonyms":"suppress, quell\nannul, nullify","related":""},{"seq":"21012","word":"intrigue","meaning":"v. 激起兴趣\nn. 密谋, 阴谋","synonyms":"fascinate, captivate\nscheme, conspiracy","related":""},{"seq":"21013","word":"serene","meaning":"adj. 安静的, 宁静的","synonyms":"tranquil, placid","related":"serenade 小夜曲"},{"seq":"21014","word":"seminal","meaning":"adj. 开创性的","synonyms":"groundbreaking, original","related":""},{"seq":"21015","word":"cerebral","meaning":"adj. 理智的","synonyms":"dispassionate, intellectual, analytical","related":"cerebrum 大脑"},{"seq":"21016","word":"emergent","meaning":"adj. 新兴的, 刚出现的","synonyms":"nascent, budding","related":""},{"seq":"21017","word":"abstemious","meaning":"adj. 有节制的","synonyms":"temperate, ascetic","related":""},{"seq":"21018","word":"conducive","meaning":"adj. 有利的","synonyms":"favorable, beneficial","related":""},{"seq":"21019","word":"jocular","meaning":"adj. 幽默的","synonyms":"humorous, facetious","related":""},{"seq":"21020","word":"laudatory","meaning":"adj. 赞美的","synonyms":"complimentary, adulatory","related":""},{"seq":"21021","word":"idiosyncratic","meaning":"adj. 独特的","synonyms":"distinctive, atypical, peculiar, unorthodox","related":""},{"seq":"21022","word":"concrete","meaning":"adj. 具体的","synonyms":"palpable, tangible","related":""},{"seq":"21023","word":"avant-garde","meaning":"adj. 先锋的","synonyms":"pioneering, experimental, unconventional","related":""},{"seq":"21024","word":"fastidious","meaning":"adj. 挑剔苛刻的","synonyms":"picky, finicky, meticulous","related":""},{"seq":"21025","word":"erudite","meaning":"adj. 博学的","synonyms":"scholarly","related":""},{"seq":"21026","word":"ancillary","meaning":"adj. 辅助的, 补充的","synonyms":"subsidiary, supplementary, incidental","related":"ancilla 女仆"},{"seq":"21027","word":"tactless","meaning":"adj. 不明智的, 低情商的","synonyms":"impolitic, undiplomatic","related":""},{"seq":"21028","word":"moribund","meaning":"adj. 濒死的","synonyms":"dying, declining","related":""},{"seq":"21029","word":"sketchy","meaning":"adj. 粗略的","synonyms":"rudimentary, superficial","related":""},{"seq":"21030","word":"retrograde","meaning":"adj. 倒退的","synonyms":"outmoded, regressive","related":"Mercury retrograde 水逆"},{"seq":"21031","word":"dacadent","meaning":"adj. 堕落的","synonyms":"degenerate","related":""},{"seq":"21032","word":"sporadic","meaning":"adj. 断断续续的","synonyms":"occasional, intermittent, fitful","related":""},{"seq":"21033","word":"cunning","meaning":"adj. 狡猾的","synonyms":"devious, crafty","related":""},{"seq":"21034","word":"doctrinaire","meaning":"adj. 教条的, 固执武断的","synonyms":"dogmatic, rigid, inflexible","related":""},{"seq":"21035","word":"vehement","meaning":"adj. 激烈的, 激动的","synonyms":"impassioned, fervent, forceful","related":""},{"seq":"21036","word":"dire","meaning":"adj. 可怕的, 严重的","synonyms":"dreadful, grave","related":""}];
+  const WORD_KEYS = new Set(WORDS.map((w) => w.seq));
+
+  const STORAGE_KEY = 'gre-word-stats-v1';
+  const MASTERED_KEY = 'gre-mastered-v1';
+  const NEIGHBOR_COUNT = 10;
+
+  const els = {
+    todayStats: document.getElementById('todayStats'),
+    prompt: document.getElementById('prompt'),
+    word: document.getElementById('word'),
+    wordMeta: document.getElementById('wordMeta'),
+    resultTag: document.getElementById('resultTag'),
+    countText: document.getElementById('countText'),
+    actions: document.getElementById('actions'),
+    btnKnown: document.getElementById('btnKnown'),
+    btnUnknown: document.getElementById('btnUnknown'),
+    details: document.getElementById('details'),
+    meaning: document.getElementById('meaning'),
+    synonyms: document.getElementById('synonyms'),
+    related: document.getElementById('related'),
+    synField: document.getElementById('synField'),
+    relField: document.getElementById('relField'),
+    btnNext: document.getElementById('btnNext'),
+    btnMastered: document.getElementById('btnMastered'),
+    neighbors: document.getElementById('neighbors'),
+    overallStats: document.getElementById('overallStats'),
+    masteredBtn: document.getElementById('masteredBtn'),
+    masteredSheet: document.getElementById('masteredSheet'),
+    masteredSheetCount: document.getElementById('masteredSheetCount'),
+    masteredList: document.getElementById('masteredList'),
+    closeMastered: document.getElementById('closeMastered'),
+    toast: document.getElementById('toast'),
+    reset: document.getElementById('reset'),
+  };
+
+  let stats = loadStats();
+  let mastered = loadMastered();
+  let currentIndex = -1;
+  let revealed = false;
+  let toastTimer = 0;
+  let lastFocused = null;
+
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
+  function loadStats() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      return parsed;
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function saveStats() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+    } catch (err) {
+      // Storage unavailable (private mode etc.); the app still works this session.
+    }
+  }
+
+  function loadMastered() {
+    try {
+      const raw = localStorage.getItem(MASTERED_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(parsed)) return new Set();
+      return new Set(parsed.map((key) => String(key)).filter((key) => WORD_KEYS.has(key)));
+    } catch (err) {
+      return new Set();
+    }
+  }
+
+  function saveMastered() {
+    try {
+      localStorage.setItem(MASTERED_KEY, JSON.stringify([...mastered]));
+    } catch (err) {
+      // Same as stats: keep working for this session.
+    }
+  }
+
+  function getTodayTotals() {
+    const day = todayKey();
+    let seen = 0;
+    let unknown = 0;
+    for (const key in stats) {
+      if (!WORD_KEYS.has(key)) continue;
+      const s = stats[key];
+      if (s && s.day === day) {
+        seen += s.daySeen || 0;
+        unknown += s.dayUnknown || 0;
+      }
+    }
+    return { seen, unknown };
+  }
+
+  function getOverallTotals() {
+    let learned = 0;
+    let seen = 0;
+    for (const key in stats) {
+      if (!WORD_KEYS.has(key)) continue;
+      const s = stats[key];
+      if (s && s.seen > 0) {
+        learned += 1;
+        seen += s.seen;
+      }
+    }
+    return { learned, seen };
+  }
+
+  function updateHeader() {
+    const t = getTodayTotals();
+    els.todayStats.textContent = '今日 ' + t.seen + ' 次 · 不认识 ' + t.unknown;
+    const o = getOverallTotals();
+    els.overallStats.textContent = '已学 ' + o.learned + '/' + WORDS.length + ' · 累计 ' + o.seen + ' 次';
+    els.masteredBtn.textContent = '熟词 (' + mastered.size + ')';
+  }
+
+  function weightOf(s, day) {
+    if (!s) return 1;
+    const cumulativeRate = s.seen ? s.unknown / s.seen : 0;
+    const todayRate = (s.day === day && s.daySeen) ? s.dayUnknown / s.daySeen : 0;
+    return 1 + 3 * cumulativeRate + 5 * todayRate;
+  }
+
+  function pickIndex(exclude) {
+    const day = todayKey();
+    const weights = new Array(WORDS.length);
+    let total = 0;
+    for (let i = 0; i < WORDS.length; i += 1) {
+      const skipped = i === exclude || mastered.has(WORDS[i].seq);
+      const weight = skipped ? 0 : weightOf(stats[WORDS[i].seq], day);
+      weights[i] = weight;
+      total += weight;
+    }
+    if (total <= 0) return -1;
+    let r = Math.random() * total;
+    for (let i = 0; i < weights.length; i += 1) {
+      if (weights[i] <= 0) continue;
+      r -= weights[i];
+      if (r <= 0) return i;
+    }
+    for (let i = weights.length - 1; i >= 0; i -= 1) {
+      if (weights[i] > 0) return i;
+    }
+    return -1;
+  }
+
+  function record(word, known) {
+    const day = todayKey();
+    let s = stats[word.seq];
+    if (!s) s = { seen: 0, unknown: 0, day: '', daySeen: 0, dayUnknown: 0 };
+    if (s.day !== day) {
+      s.day = day;
+      s.daySeen = 0;
+      s.dayUnknown = 0;
+    }
+    s.seen += 1;
+    s.daySeen += 1;
+    if (!known) {
+      s.unknown += 1;
+      s.dayUnknown += 1;
+    }
+    stats[word.seq] = s;
+    saveStats();
+    return s;
+  }
+
+  function renderNeighbors(index) {
+    els.neighbors.replaceChildren();
+    const groups = [
+      { label: '前', start: Math.max(0, index - NEIGHBOR_COUNT), end: index },
+      { label: '后', start: index + 1, end: Math.min(WORDS.length, index + 1 + NEIGHBOR_COUNT) },
+    ];
+    for (const group of groups) {
+      if (group.start >= group.end) continue;
+      const box = document.createElement('div');
+      box.className = 'neighbor-group';
+      const label = document.createElement('div');
+      label.className = 'neighbor-label';
+      label.textContent = group.label + ' ' + (group.end - group.start) + ' 个词';
+      const list = document.createElement('div');
+      list.className = 'chips';
+      for (let i = group.start; i < group.end; i += 1) {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        const chipWord = document.createElement('span');
+        chipWord.className = 'chip-word';
+        chipWord.textContent = WORDS[i].word;
+        const chipMeaning = document.createElement('span');
+        chipMeaning.className = 'chip-meaning';
+        chipMeaning.textContent = WORDS[i].meaning;
+        chip.append(chipWord, chipMeaning);
+        list.appendChild(chip);
+      }
+      box.append(label, list);
+      els.neighbors.appendChild(box);
+    }
+  }
+
+  function renderEmpty() {
+    currentIndex = -1;
+    revealed = false;
+    els.word.textContent = '🎉';
+    els.word.classList.remove('long');
+    els.prompt.textContent = '所有单词都已标熟';
+    els.prompt.hidden = false;
+    els.wordMeta.hidden = true;
+    els.actions.hidden = true;
+    els.details.hidden = true;
+    els.neighbors.replaceChildren();
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function renderWord(index) {
+    if (index < 0) {
+      renderEmpty();
+      return;
+    }
+    currentIndex = index;
+    revealed = false;
+    const word = WORDS[index];
+
+    els.word.textContent = word.word;
+    els.word.classList.toggle('long', word.word.length > 13);
+    els.prompt.textContent = '认识这个单词吗？';
+    els.prompt.hidden = false;
+    els.wordMeta.hidden = true;
+    els.actions.hidden = false;
+    els.details.hidden = true;
+
+    els.meaning.textContent = word.meaning;
+    els.synonyms.textContent = word.synonyms;
+    els.related.textContent = word.related;
+    els.synField.hidden = !word.synonyms;
+    els.relField.hidden = !word.related;
+    els.neighbors.replaceChildren();
+
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function reveal(known) {
+    if (revealed) return;
+    revealed = true;
+    const word = WORDS[currentIndex];
+    const s = record(word, known);
+
+    els.resultTag.textContent = known ? '认识' : '不认识';
+    els.resultTag.className = 'tag ' + (known ? 'known' : 'unknown');
+    const percent = s.seen ? Math.round((s.unknown / s.seen) * 100) : 0;
+    els.countText.textContent =
+      '累计 ' + s.unknown + '/' + s.seen + ' 不认识 (' + percent + '%) · 今日 ' +
+      s.dayUnknown + '/' + s.daySeen;
+
+    els.prompt.hidden = true;
+    els.actions.hidden = true;
+    els.wordMeta.hidden = false;
+    renderNeighbors(currentIndex);
+    els.details.hidden = false;
+    updateHeader();
+  }
+
+  function showToast(message) {
+    els.toast.textContent = message;
+    els.toast.hidden = false;
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => {
+      els.toast.hidden = true;
+    }, 1400);
+  }
+
+  function markMastered() {
+    if (currentIndex < 0) return;
+    const word = WORDS[currentIndex];
+    mastered.add(word.seq);
+    saveMastered();
+    updateHeader();
+    showToast('已标熟：' + word.word);
+    renderWord(pickIndex(-1));
+  }
+
+  function renderMasteredList() {
+    els.masteredList.replaceChildren();
+    const list = WORDS.filter((word) => mastered.has(word.seq));
+    els.masteredSheetCount.textContent = '(' + list.length + ')';
+
+    if (list.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'mastered-empty';
+      empty.textContent = '还没有标熟的单词';
+      els.masteredList.appendChild(empty);
+      return;
+    }
+
+    for (const word of list) {
+      const item = document.createElement('div');
+      item.className = 'mastered-item';
+
+      const text = document.createElement('div');
+      text.className = 'mastered-text';
+      const wordEl = document.createElement('span');
+      wordEl.className = 'mastered-word';
+      wordEl.textContent = word.word;
+      const meaningEl = document.createElement('span');
+      meaningEl.className = 'mastered-meaning';
+      meaningEl.textContent = word.meaning;
+      text.append(wordEl, meaningEl);
+
+      const restore = document.createElement('button');
+      restore.className = 'restore-btn';
+      restore.type = 'button';
+      restore.textContent = '恢复';
+      restore.addEventListener('click', () => {
+        mastered.delete(word.seq);
+        saveMastered();
+        updateHeader();
+        renderMasteredList();
+        showToast('已恢复：' + word.word);
+        if (currentIndex < 0) renderWord(pickIndex(-1));
+      });
+
+      item.append(text, restore);
+      els.masteredList.appendChild(item);
+    }
+  }
+
+  function openMasteredList() {
+    lastFocused = document.activeElement;
+    renderMasteredList();
+    els.masteredSheet.hidden = false;
+    document.body.style.overflow = 'hidden';
+    els.closeMastered.focus();
+  }
+
+  function closeMasteredList() {
+    els.masteredSheet.hidden = true;
+    document.body.style.overflow = '';
+    if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    lastFocused = null;
+  }
+
+  els.btnKnown.addEventListener('click', () => reveal(true));
+  els.btnUnknown.addEventListener('click', () => reveal(false));
+  els.btnMastered.addEventListener('click', markMastered);
+  els.btnNext.addEventListener('click', () => renderWord(pickIndex(currentIndex)));
+  els.masteredBtn.addEventListener('click', openMasteredList);
+  els.closeMastered.addEventListener('click', closeMasteredList);
+  els.masteredSheet.addEventListener('click', (event) => {
+    if (event.target === els.masteredSheet) closeMasteredList();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !els.masteredSheet.hidden) closeMasteredList();
+  });
+
+  els.reset.addEventListener('click', () => {
+    if (!window.confirm('确定要清空所有学习统计吗？熟词列表不会被清除。')) return;
+    stats = {};
+    saveStats();
+    window.location.reload();
+  });
+
+  renderWord(pickIndex(-1));
+  updateHeader();
+})();
+</script>
+</body>
+</html>
